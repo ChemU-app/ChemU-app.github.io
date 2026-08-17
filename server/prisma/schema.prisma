@@ -19,15 +19,15 @@ model Teacher {
 }
 
 model Course {
-  id           String          @id @default(auto()) @map("_id") @db.ObjectId
-  teacherId    String          @db.ObjectId
-  name         String
-  teacher      Teacher         @relation(fields: [teacherId], references: [id])
-  chapters     Chapter[]
-  rewards      Reward[]
-  sessions     Session[]
-  students     StudentCourse[]
-  classes      CourseClass[]
+  id        String          @id @default(auto()) @map("_id") @db.ObjectId
+  teacherId String          @db.ObjectId
+  name      String
+  teacher   Teacher         @relation(fields: [teacherId], references: [id])
+  chapters  Chapter[]
+  rewards   Reward[]
+  sessions  Session[]
+  students  StudentCourse[]
+  classes   CourseClass[]
 }
 
 model JoinRequest {
@@ -60,18 +60,22 @@ model Chapter {
 }
 
 model Section {
-  id               String             @id @default(auto()) @map("_id") @db.ObjectId
-  chapterId        String             @db.ObjectId
-  questionIds      String[]           @db.ObjectId
+  id               String              @id @default(auto()) @map("_id") @db.ObjectId
+  chapterId        String              @db.ObjectId
+  questionIds      String[]            @db.ObjectId
   name             String
   description      String
   orderIndex       Int
-  chapter          Chapter            @relation(fields: [chapterId], references: [id])
-  questions        Question[]         @relation(fields: [questionIds], references: [id])
+  chapter          Chapter             @relation(fields: [chapterId], references: [id])
+  questions        Question[]          @relation(fields: [questionIds], references: [id])
   studentSections  StudentSection[]
   sectionAttempts  SectionAttempt[]
-  currentFor       StudentCourse[]    @relation("CurrentSection")
+  currentFor       StudentCourse[]     @relation("CurrentSection")
   currentForEnroll StudentEnrollment[] @relation("CurrentSectionEnroll")
+  questionNumber   String?
+  varTypes 	   String[]
+  varMin	   String[]
+  varMax	   String[]
 }
 
 model Question {
@@ -84,7 +88,7 @@ model Question {
   correctExplanation   String?
   incorrectExplanation String?
   difficulty           Int
-  fixedImage	       String?
+  fixedImage           String?
   answerExpression     String?
   answerUnit           String?
   distractorCount      Int?
@@ -93,6 +97,9 @@ model Question {
   attempts             QuestionAttempt[]
   tags                 QuestionTag[]     @relation(fields: [tagIds], references: [id])
   sections             Section[]         @relation(fields: [sectionIds], references: [id])
+  varTypes             String[]
+  varMin	       String[]
+  varMax	       String[]
 }
 
 model QuestionTag {
@@ -140,50 +147,50 @@ model AttemptAnswer {
 // ─── Student & Enrollment ─────────────────────────────────────────────────────
 
 model Student {
-  id              String             @id @default(auto()) @map("_id") @db.ObjectId
-  email           String             @unique
-  name            String
-  password        String
+  id               String              @id @default(auto()) @map("_id") @db.ObjectId
+  email            String              @unique
+  name             String
+  password         String
   profileImage     String?
   activeTitle      String?
-  weeklyMinuteGoal Int                @default(60)
+  weeklyMinuteGoal Int                 @default(60)
   courses          StudentCourse[]
-  enrollments     StudentEnrollment[]
-  sessions        Session[]
-  sections        StudentSection[]
-  sectionAttempts SectionAttempt[]
-  badges          StudentBadge[]
-  rewards         StudentReward[]
-  attempts        QuestionAttempt[]
-  joinRequests    JoinRequest[]
+  enrollments      StudentEnrollment[]
+  sessions         Session[]
+  sections         StudentSection[]
+  sectionAttempts  SectionAttempt[]
+  badges           StudentBadge[]
+  rewards          StudentReward[]
+  attempts         QuestionAttempt[]
+  joinRequests     JoinRequest[]
 }
 
 // Legacy enrollment model — kept for backward compat during migration
 model StudentCourse {
-  id               String   @id @default(auto()) @map("_id") @db.ObjectId
-  studentId        String   @db.ObjectId
-  courseId         String   @db.ObjectId
-  currentPoints    Int      @default(0)
-  lifetimePoints   Int      @default(0)
-  streak           Int      @default(0)
-  currentSectionId String?  @db.ObjectId
+  id               String    @id @default(auto()) @map("_id") @db.ObjectId
+  studentId        String    @db.ObjectId
+  courseId         String    @db.ObjectId
+  currentPoints    Int       @default(0)
+  lifetimePoints   Int       @default(0)
+  streak           Int       @default(0)
+  currentSectionId String?   @db.ObjectId
   lastActivityDate DateTime?
-  student          Student  @relation(fields: [studentId], references: [id])
-  course           Course   @relation(fields: [courseId], references: [id])
-  currentSection   Section? @relation("CurrentSection", fields: [currentSectionId], references: [id])
+  student          Student   @relation(fields: [studentId], references: [id])
+  course           Course    @relation(fields: [courseId], references: [id])
+  currentSection   Section?  @relation("CurrentSection", fields: [currentSectionId], references: [id])
 
   @@unique([studentId, courseId])
 }
 
 model CourseClass {
-  id            String             @id @default(auto()) @map("_id") @db.ObjectId
-  courseId      String             @db.ObjectId
-  teacherIds    String[]           @db.ObjectId
+  id            String              @id @default(auto()) @map("_id") @db.ObjectId
+  courseId      String              @db.ObjectId
+  teacherIds    String[]            @db.ObjectId
   sectionNumber String
   meetingTimes  String
-  code          String             @unique
+  code          String              @unique
   archiveDate   DateTime?
-  course        Course             @relation(fields: [courseId], references: [id])
+  course        Course              @relation(fields: [courseId], references: [id])
   enrollments   StudentEnrollment[]
   joinRequests  JoinRequest[]
   sessions      Session[]
@@ -216,18 +223,18 @@ model AuthSession {
 }
 
 model Session {
-  id                String          @id @default(auto()) @map("_id") @db.ObjectId
-  studentId         String          @db.ObjectId
-  courseId          String          @db.ObjectId
-  courseClassId     String?         @db.ObjectId
+  id                String            @id @default(auto()) @map("_id") @db.ObjectId
+  studentId         String            @db.ObjectId
+  courseId          String            @db.ObjectId
+  courseClassId     String?           @db.ObjectId
   startedAt         DateTime
   endedAt           DateTime?
   lastActivityAt    DateTime?
-  questionsAnswered Int             @default(0)
-  pointsEarned      Int             @default(0)
-  student           Student         @relation(fields: [studentId], references: [id])
-  course            Course          @relation(fields: [courseId], references: [id])
-  courseClass       CourseClass?    @relation(fields: [courseClassId], references: [id])
+  questionsAnswered Int               @default(0)
+  pointsEarned      Int               @default(0)
+  student           Student           @relation(fields: [studentId], references: [id])
+  course            Course            @relation(fields: [courseId], references: [id])
+  courseClass       CourseClass?      @relation(fields: [courseClassId], references: [id])
   attempts          QuestionAttempt[]
 }
 
@@ -313,6 +320,4 @@ model StudentReward {
   redeemedAt          DateTime?
   student             Student   @relation(fields: [studentId], references: [id])
   reward              Reward    @relation(fields: [rewardId], references: [id])
-
-  @@unique([studentId, rewardId])
 }

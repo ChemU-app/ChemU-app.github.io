@@ -1,6 +1,6 @@
 mongo-keyfile
 client/.idea/
-.env
+server/.env
 server/.env.production
 notes
 pnpm-lock.yaml

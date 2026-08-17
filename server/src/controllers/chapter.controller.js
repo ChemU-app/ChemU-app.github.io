@@ -11,7 +11,6 @@ async function getCourseChapters(req, res) {
   const { courseId } = req.params;
   const { error, status } = await ownedCourse(courseId, req.user.sub);
   if (error) return res.status(status).json({ error });
-
   const chapters = await prisma.chapter.findMany({
     where: { courseId },
     orderBy: { orderIndex: 'asc' },

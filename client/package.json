@@ -6,7 +6,9 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "deploy": "gh-pages --nojekyll -d dist",
+    "predeploy": "expo export -p web"
   },
   "dependencies": {
     "@expo-google-fonts/nunito": "^0.4.2",
@@ -33,6 +35,7 @@
   },
   "private": true,
   "devDependencies": {
-    "babel-preset-expo": "^55.0.22"
+    "babel-preset-expo": "^55.0.22",
+    "gh-pages": "^6.3.0"
   }
 }

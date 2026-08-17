@@ -231,28 +231,29 @@ function resolveAll(brackets) {
 
 // ─── Render ───────────────────────────────────────────────────────────────────
 
-function renderContent(content, resolutions) {
-  let result = content;
-  // Replace in reverse order to preserve indices when strings have different lengths
-  const sorted = [...resolutions].sort((a, b) => b.position - a.position);
-  let remaining = content;
-  const parts = [];
-  BRACKET_RE.lastIndex = 0;
-  const matches = [];
-  let m;
-  while ((m = BRACKET_RE.exec(content)) !== null) {
-    matches.push({ index: m.index, length: m[0].length, position: matches.length + 1 });
+function renderContent(content, brackets, vars) {
+  let out = content;
+  for (const item of brackets){
+   const needle = item.raw;
+   switch(vars[item.refPosition].type){
+   case "NA":{
+    out = out.replace(needle, "NaN");
+    break;
+   }
+   case "Number":{
+    out = out.replace(needle, String(vars[item.refPosition].num));
+    break;
+   }
+   case "Element":{
+    console.log(vars[item.refPosition]);
+    out = out.replace(needle, String(vars[item.refPosition].elm[item.property]));
+    break;
+   }
+   default:{
+    out = out.replace(needle, "NaN");
+   }
+   }
   }
-  // Replace all matches using the resolution map
-  const resMap = new Map(resolutions.map(r => [r.position, r.displayValue]));
-  let out = '';
-  let cursor = 0;
-  for (const match of matches) {
-    out += content.slice(cursor, match.index);
-    out += resMap.get(match.position) ?? '?';
-    cursor = match.index + match.length;
-  }
-  out += content.slice(cursor);
   return out;
 }
 
@@ -341,9 +342,8 @@ function safeArithmetic(expr) {
   return nums[0] ?? NaN;
 }
 
-function evaluateAnswer(expression, resolutions) {
+function evaluateAnswer(expression, resolutions, vars) {
   const resMap = new Map(resolutions.map(r => [r.position, r]));
-
   // Comparison operators — return displayValue of the winning slot
   const cmpMatch = expression.trim().match(CMP_EXPR_RE);
   if (cmpMatch) {
@@ -362,9 +362,24 @@ function evaluateAnswer(expression, resolutions) {
 
   // Replace [N.property] refs first (property access on a slot)
   expr = expr.replace(/\[(\d+)\.([a-zA-Z]+)\]/g, (_, pos, prop) => {
-    const r = resMap.get(parseInt(pos, 10));
+    //const r = resMap.get(parseInt(pos, 10));
+    let r = vars[parseInt(pos, 10)];
     if (!r) return 'NaN';
-    const val = typeof r.rawData === 'object' ? r.rawData[prop] : r.rawData;
+    let val = "";
+    switch(r.type){
+    case "NA":{
+     val = "NaN";
+     break;
+    }
+    case "Number":{
+     val = r.num;
+     break;
+    }
+    case "Element":{
+     val = r.elm[prop];
+     break;
+    }
+    }
     return val != null ? String(val) : 'NaN';
   });
 
@@ -435,11 +450,17 @@ function hasArithmetic(answerExpression) {
   return /[+\-*/]/.test(answerExpression);
 }
 
-function generateDistractors(correctValue, resolutions, brackets, answerExpression, count) {
-  const distractors = new Set();
+function generateDistractors(correctValue, resolutions, brackets, answerExpression, count, vars) {
+  let distractions = [];
+  let i=0;
+  while(i < count){
+   distractions.push(renderContent(answerExpression, parseBrackets(answerExpression), vars[i+1]));
+   i++;
+  }
+  return distractions;
+  /*const distractors = new Set();
   const primaryBracket = getPrimarySlot(answerExpression, brackets);
   const isArithmetic = hasArithmetic(answerExpression);
-
   // Comparison distractor path
   const cmpDistractorMatch = answerExpression.trim().match(CMP_EXPR_RE);
   if (cmpDistractorMatch) {
@@ -453,10 +474,9 @@ function generateDistractors(correctValue, resolutions, brackets, answerExpressi
       if (r && r.displayValue !== correctValue && !distractors.has(r.displayValue)) {
         distractors.add(r.displayValue);
       }
-    }
-
+    }*/
     // Step 2: pad with random elements/compounds from the same pool
-    if (distractors.size < count && primaryBracket?.type === 'el') {
+    /*if (distractors.size < count && primaryBracket?.type === 'el') {
       const prop = primaryBracket.property;
       const inRange = periodicTable
         .filter(e => e.number >= primaryBracket.min && e.number <= primaryBracket.max && String(e[prop]) !== correctValue)
@@ -479,9 +499,8 @@ function generateDistractors(correctValue, resolutions, brackets, answerExpressi
         .sort(() => Math.random() - 0.5)
         .forEach(c => { if (distractors.size < count) distractors.add(String(c[prop])); });
     }
-
-    return [...distractors].slice(0, count);
-  }
+    return [...distractors].slice(0, count);*/
+/*  }
 
   if (isArithmetic || !primaryBracket || primaryBracket.type === 'expr' || primaryBracket.type === 'const') {
     // Numeric variants: ±5%, ±10%, ±15%, ±20%, ±25%
@@ -512,8 +531,8 @@ function generateDistractors(correctValue, resolutions, brackets, answerExpressi
         }
       }
     }
-    return [...distractors].slice(0, count);
-  }
+    return [...distractors].slice(0, count);*/
+ /* }
 
   const resolution = resolutions.find(r => r.position === primaryBracket.position);
 
@@ -596,7 +615,7 @@ function generateDistractors(correctValue, resolutions, brackets, answerExpressi
     }
   }
 
-  return [...distractors].slice(0, count);
+  return [...distractors].slice(0, count);*/
 }
 
 // ─── Build choices ────────────────────────────────────────────────────────────
@@ -616,13 +635,38 @@ function buildDynamicChoices(correctValue, distractors) {
 
 // ─── Validate template ────────────────────────────────────────────────────────
 
-function validateTemplate(content, answerExpression) {
+const elmProps = ["name", "symbol", "molarMass", "atomicNumber", "neutrons", "protons", "electrons", "charge", "chargeElectrons"];
+const numProps = ["number"];
+
+function validateTemplate(content, answerExpression, vars) {
   const brackets = parseBrackets(content);
-
-  if (brackets.length === 0) return 'content must contain at least one bracket expression';
-
+  //if (brackets.length === 0) return 'content must contain at least one bracket expression';
   for (const b of brackets) {
-    if (b.parseError) return b.parseError;
+   switch(b.type){
+   case 'ref':{
+    if(b.refPosition < 0 || b.refPosition >= vars.length)return `${b.raw} is invalid, var index out of range`;
+    switch(vars[b.refPosition].type){
+    case "Number":{
+     if(!numProps.includes(b.property))return `${b.raw} is invalid, not a property of a Number`;
+     break;
+    }
+    case 'Element':{
+     if(!elmProps.includes(b.property))return `${b.raw} is invalid, not a property of an Element`;
+     break;
+    }
+    default:{
+     return `${b.raw} : The type: ${vars[b.refPosition].type} is not handled yet`;
+    }
+    }
+    //return true;
+    break;
+   }
+   default:{
+    console.log(b.type);
+   }
+   }
+  }
+  /*  if (b.parseError) return b.parseError;
     if (!KNOWN_TYPES.includes(b.type)) return `Unknown bracket type: ${b.raw}`;
 
     if (b.type === 'expr') {
@@ -699,8 +743,8 @@ function validateTemplate(content, answerExpression) {
       if (!CONSTANTS[b.constantName]) {
         return `Unknown constant "${b.constantName}". Valid: ${Object.keys(CONSTANTS).join(', ')}`;
       }
-    }
-  }
+    }*/
+  //}
 
   // Validate answerExpression
   if (!answerExpression || !answerExpression.trim()) {

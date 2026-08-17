@@ -3,8 +3,10 @@ import { StatusBar } from 'expo-status-bar';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, ScrollView, StyleSheet, Pressable, Modal, Animated,
-  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator
+  TextInput, KeyboardAvoidingView, Platform, ActivityIndicator,
+  FlatList,
 } from 'react-native';
+import { abbr } from '../../components/abbr';
 import { alertLib } from '../../lib/alertLib';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -376,18 +378,116 @@ const qr = StyleSheet.create({
   accuracy: { fontFamily: 'Nunito_800ExtraBold', fontSize: 11 },
 });
 
+//----OPTION CARD ROW ------------------------------------------------------------
+export function OptionCardRow({
+  name,
+  desc,
+  value,
+  changeState,
+  type,
+  placeholder = "Type here...",
+}) {
+  return (
+    <View style={optionCardStyle.optionCardRow}>
+     <abbr title={name}>
+      <Text style={optionCardStyle.optionCardRowLeftText} numberOfLines={1}>
+        {name}
+      </Text>
+     </abbr>
+
+      <Text style={optionCardStyle.optionCardRowDescription} numberOfLines={2}>
+        {desc}
+      </Text>
+
+      <TextInput
+        style={optionCardStyle.optionCardRowInput}
+        value={value}
+        onChangeText={(text)=>{changeState(text)}}
+        placeholder={placeholder}
+        placeholderTextColor="#9CA3AF"
+	inputMode={type}
+	autoComplete='off'
+	autoCapitalize='none'
+
+      />
+    </View>
+  );
+}
+
+const optionCardStyle = StyleSheet.create({
+  optionCardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12, // RN 0.71+; otherwise remove and use margins
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+
+  optionCardRowLeftText: {
+    width: 160,
+    fontSize: 14,
+    color: "#111827",
+    fontWeight: "600",
+  },
+
+  optionCardRowDescription: {
+    flex: 1,
+    fontSize: 13,
+    color: "#374151",
+  },
+
+  optionCardRowInput: {
+    width: 110,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#F9FAFB",
+    fontSize: 14,
+    color: "#111827",
+  },
+
+  optionCardRowSave: {
+    paddingHorizontal: 12,
+    paddingVertical: 15,
+    marginVertical: 10,
+    marginHorizontal: 10,
+    borderRadius: 10,
+    backgroundColor: "#2563EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  optionCardRowSaveText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+});
+
 // ─── SectionCard ───────────────────────────────────────────────────────────────
 
 function SectionCard({token, section, orderIndex, expanded, onToggle, questions, loadingQ, stats, totalEnrolled, sectionMode, onAddFromBank, onExport, exportingThis, onCompletedPress }) {
   const qCount = section._count?.questions ?? 0;
   const chevronAnim = useRef(new Animated.Value(0)).current;
-
+  console.log(section);
   useEffect(() => {
     Animated.timing(chevronAnim, { toValue: expanded ? 1 : 0, duration: 200, useNativeDriver: true }).start();
   }, [expanded]);
+  
+  const [qiaState, setQIAState] = useState(section?.questionNumber ?? "0");
+
+  const Options = [
+   {name: "Questions in Attempt", desc: "Set the number of questions a student will get in an attempt of the section.", state: qiaState, changeState: setQIAState, placeholder: "0", type: "numeric"}
+  ];
 
   const chevronRot = chevronAnim.interpolate({ inputRange: [0, 1], outputRange: ['0deg', '180deg'] });
-
+  const [editSec, setEditSec] = useState(false);
   return (
     <View style={sc.card}>
       <Pressable onPress={onToggle} style={({ pressed }) => [sc.headerRow, pressed && { opacity: 0.85 }]}>
@@ -407,6 +507,50 @@ function SectionCard({token, section, orderIndex, expanded, onToggle, questions,
         </View>
 
         <View style={sc.rightChips}>
+	 {/*Section Edit*/}
+	  <Pressable onPress={()=>{setEditSec(true)}}>
+	   <Ionicons name="settings-outline" size="1.5rem"/>
+	  </Pressable>
+	  <Modal
+           transparent={false}
+	   animationType="slide"
+	   visible={editSec}
+	   onRequestClose={()=>{setEditSec(false);}}>
+           <FlatList
+            data={Options}
+	    renderItem={({item})=>{
+	     console.log(item);
+             return(<OptionCardRow name={item.name} desc={item.desc} value={item.state} changeState={item.changeState} type={item.type} placeholder={item.placeholder}/>);
+	    }}
+	   />
+           <Pressable
+            style={optionCardStyle.optionCardRowSave}
+            onPress={()=>{setEditSec(false);}}
+           >
+            <Text style={optionCardStyle.optionCardRowSaveText}>Save</Text>
+           </Pressable>
+           <Pressable
+            style={optionCardStyle.optionCardRowSave}
+            onPress={()=>{
+	     const body = {
+              questionNumber: qiaState
+	     }
+	     api.patch(`/sections/${section.id}/update`, body, token);
+	     setEditSec(false);
+	    }}
+           >
+            <Text style={optionCardStyle.optionCardRowSaveText}>Delete Section</Text>
+           </Pressable>
+           <Pressable
+            style={optionCardStyle.optionCardRowSave}
+            onPress={()=>{setEditSec(false);}}
+           >
+            <Text style={optionCardStyle.optionCardRowSaveText}>Cancel</Text>
+           </Pressable>
+
+
+
+	  </Modal>
           <View style={sc.qChip}>
             <Text style={sc.qChipText}>{qCount} Q</Text>
           </View>
@@ -586,6 +730,7 @@ const asSt = StyleSheet.create({
 // ─── Screen ────────────────────────────────────────────────────────────────────
 
 export default function ChapterDetailScreen({ navigation, route }) {
+  console.log("chapterDetailScreen");
   const { token } = useAuth();
   const insets = useSafeAreaInsets();
   const {

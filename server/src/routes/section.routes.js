@@ -1,7 +1,7 @@
 const { Router } = require('express');
 const { authenticate, requireRole } = require('../middleware/auth.middleware');
 const { getSectionQuestions, updateQuestion } = require('../controllers/question.controller');
-const { completeSection, addQuestionToSection, removeQuestionFromSection } = require('../controllers/section.controller');
+const { completeSection, addQuestionToSection, removeQuestionFromSection, updateSection } = require('../controllers/section.controller');
 const { getStudentSectionQuestions } = require('../controllers/student.controller');
 const { exportSectionCsv } = require('../controllers/export.controller');
 
@@ -21,5 +21,5 @@ router.post('/:sectionId/questions/:questionId',           authenticate, require
 router.delete('/:sectionId/questions/:questionId',         authenticate, requireRole('TEACHER'), removeQuestionFromSection);
 router.patch('/:sectionId/questions/:questionId',          authenticate, requireRole('TEACHER'), updateQuestion);
 router.post('/:sectionId/complete',                        authenticate, requireRole('STUDENT'), completeSection);
-
+router.patch('/:sectionId/update',			   authenticate, requireRole('TEACHER'), updateSection);
 module.exports = router;

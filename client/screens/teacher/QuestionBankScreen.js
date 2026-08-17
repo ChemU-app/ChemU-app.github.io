@@ -252,7 +252,7 @@ function QuestionCard({ token, question, onPress, pickMode, selected, alreadyAdd
       )}
 
         <Pressable style={styl.str} onPress={()=>setDel(true)}>
-         <Ionicons name="trash-outline" size="1rem"></Ionicons>
+         <Ionicons name="trash-outline" size="16" ></Ionicons>
         </Pressable>
 <Modal animationType='fade' transparent={false} visible={showDel} onRequestClose={()=>setDel(false)}>
         <View style={styl.overlay}>
@@ -285,7 +285,7 @@ function QuestionCard({ token, question, onPress, pickMode, selected, alreadyAdd
 }
 const styl = StyleSheet.create({
   str:{
-    fontSize: "7rem",
+    fontSize: "17" ,
     alignSelf: "flex-end",
     alignItems: "flex-end",
     justifyContent: "flex-end"

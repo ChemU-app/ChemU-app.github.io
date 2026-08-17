@@ -169,7 +169,6 @@ export default function HomeScreen({ navigation, route }) {
         api.get('/courses', token).catch(() => []),
       ]);
       setCoursesCache(courses ?? []);
-
       const enrollments = me.enrollments ?? [];
       // Attach course name to each enrollment for the drawer
       const enriched = enrollments.map(e => ({
@@ -177,13 +176,11 @@ export default function HomeScreen({ navigation, route }) {
         courseName: courses?.find(c => c.id === e.courseClass?.courseId)?.name ?? null,
       }));
       setAllEnrollments(enriched);
-
       // Pick active class from storage or fall back to first enrollment
       const storedId = await getItem('active_class_id');
       const active = storedId
         ? (enriched.find(e => e.courseClassId === storedId) ?? enriched[0])
         : enriched[0];
-
       if (!active) return;
       setActiveClassId(active.courseClassId);
       setEnrollment(active);
@@ -240,6 +237,7 @@ export default function HomeScreen({ navigation, route }) {
     setJoining(true);
     try {
       await api.post('/courses/enroll-by-code', { code: joinCode.trim() }, token);
+      //await api.post('/courses/enroll
       setJoinCode('');
       setJoinSheetOpen(false);
       setClassDrawerOpen(false);

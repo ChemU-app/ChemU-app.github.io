@@ -1,3 +1,4 @@
+const {ELEMENTS} = require('../data/elements');
 const prisma = require('../lib/prisma');
 const {
   parseBrackets, resolveAll, renderContent,
@@ -74,27 +75,82 @@ async function getStudentSectionQuestions(req, res) {
 
   const chapter = await prisma.chapter.findUnique({ where: { id: section.chapterId } });
 
-  const enrollment = await prisma.studentCourse.findUnique({
-    where: { studentId_courseId: { studentId, courseId: chapter.courseId } },
-  });
-  if (!enrollment) return res.status(403).json({ error: 'Not enrolled in this course' });
+   const enrollments = await prisma.studentEnrollment.findMany({
+    where: {
+      studentId: studentId, // your local var
+    },
+   });
 
+   const courseClassIds = enrollments.map(e => e.courseClassId);
+   const matchingCourseClasses = await prisma.courseClass.findMany({
+    where: {
+     id: { in: courseClassIds },
+     courseId: chapter.courseId, // <-- adjust field name if different
+    },
+   });
+
+   if(matchingCourseClasses.length > 1) return res.status(403).json({error: 'Class Search error'});
+   let enrollment = matchingCourseClasses[0];
+   if (!enrollment) return res.status(403).json({ error: 'Not enrolled in this course' });
   const questions = await prisma.question.findMany({
     where: { id: { in: section.questionIds } },
     include: { choices: true },
   });
-
   const processedQuestions = await Promise.all(questions.map(async (q) => {
     if (q.type !== 'DYNAMIC') {
       return { ...q, choices: q.choices.map(({ isCorrect, ...choice }) => choice) };
     }
-
+    const count = q.distractorCount ?? 3;
+    let varParms = [];
+    let vars = [];
+    let usedElements = new Set();
+    let usedNumbers = new Set();
+    {
+     let i = 0;
+     while(i < q.varTypes.length){
+      varParms.push({type:q.varTypes[i], min:Number(q.varMin[i]), max:Number(q.varMax[i])});
+      i++;
+     }
+     let j=0;
+     while(j < count+1){
+      let tVars = [];
+      i=0;
+      while(i < varParms.length){
+       switch(varParms[i].type){
+       case "NA":{
+        tVars.push({type:"NA"});
+	break;
+       }
+       case "Number":{
+        let num = (Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+	while(usedNumbers.has(num)){
+         num = (Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+	}
+	tVars.push({type: "Number", num: num});
+	usedNumbers.add(num);
+	break;
+       }
+       case "Element":{
+        let elementIndex = Math.floor(Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+	 while(usedElements.has(ELEMENTS[elementIndex].name)){
+	  elementIndex = Math.floor(Math.random() * (varParms[i].max -1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+	 }
+	tVars.push({type:"Element", elm: ELEMENTS[elementIndex]});
+	usedElements.add(ELEMENTS[elementIndex].name);
+	break;
+       }
+       }
+       i++;
+      }
+      vars.push(tVars);
+      j++;
+     }
+    }
     const brackets = parseBrackets(q.content);
     const resolutions = resolveAll(brackets);
-    const resolvedContent = renderContent(q.content, resolutions);
-    const correctValue = evaluateAnswer(q.answerExpression, resolutions);
-    const count = q.distractorCount ?? 3;
-    const distractors = generateDistractors(correctValue, resolutions, brackets, q.answerExpression, count);
+    const resolvedContent = renderContent(q.content, brackets, vars[0]);
+    const correctValue = evaluateAnswer(q.answerExpression, resolutions, vars[0]);
+    const distractors = generateDistractors(correctValue, resolutions, brackets, q.answerExpression, count, vars);
     const dynamicChoices = buildDynamicChoices(correctValue, distractors);
 
     await prisma.questionResolution.upsert({
@@ -110,12 +166,33 @@ async function getStudentSectionQuestions(req, res) {
     };
   }));
 
+  let qn = section?.questionNumber ?? "0";
+  qn = Number(qn);
+  if(qn == 0 || qn >= processedQuestions.length){
   for (let i = processedQuestions.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [processedQuestions[i], processedQuestions[j]] = [processedQuestions[j], processedQuestions[i]];
   }
 
   res.json(processedQuestions);
+  }else{
+   let qs = [];
+   let i = 0;
+   while(i < qn){
+    let rQ = Math.floor(Math.random() * processedQuestions.length);
+    let k = 0;
+    let insert = true;
+    while(k < qs.length){
+     if(qs[k].id == processedQuestions[rQ].id) insert = false;
+     k++;
+    }
+    if(insert){
+     qs.push(processedQuestions[rQ]);
+     i++;
+    }
+   }
+   res.json(qs);
+  }
 }
 
 async function getStudentCourseChapters(req, res) {
@@ -124,11 +201,26 @@ async function getStudentCourseChapters(req, res) {
 
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course) return res.status(404).json({ error: 'Course not found' });
-
-  const enrollment = await prisma.studentCourse.findUnique({
-    where: { studentId_courseId: { studentId, courseId } },
+  const student = await prisma.student.findUnique({
+   where: { id: studentId },
   });
-  if (!enrollment) return res.status(403).json({ error: 'Not enrolled in this course' });
+ const enrollments = await prisma.studentEnrollment.findMany({
+  where: {
+     studentId: studentId, // your local var
+   },
+ });
+
+ const courseClassIds = enrollments.map(e => e.courseClassId);
+ const matchingCourseClasses = await prisma.courseClass.findMany({
+   where: {
+     id: { in: courseClassIds },
+     courseId: courseId, // <-- adjust field name if different
+   },
+ });
+
+ if(matchingCourseClasses.length > 1) return res.status(403).json({error: 'Class Search error'});
+ let enrollment = matchingCourseClasses[0];
+ if (!enrollment) return res.status(403).json({ error: 'Not enrolled in this course' });
 
   const chapters = await prisma.chapter.findMany({
     where: { courseId },

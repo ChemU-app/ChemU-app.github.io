@@ -131,16 +131,14 @@ async function getSectionQuestions(req, res) {
 
 async function createQuestion(req, res) {
   const teacherId = req.user.sub;
-  const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds } = req.body;
+  const { type, content, correctExplanation, incorrectExplanation, difficulty, variables, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds } = req.body;
   const safeTagIds = Array.isArray(tagIds) ? tagIds : [];
   const errors = [];
-
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
   if (!content || !content.trim()) errors.push('content is required');
   if (!correctExplanation || !correctExplanation.trim()) errors.push('correctExplanation is required');
   if (!incorrectExplanation || !incorrectExplanation.trim()) errors.push('incorrectExplanation is required');
   if (difficulty === undefined || !Number.isInteger(difficulty) || difficulty < 1 || difficulty > 5) errors.push('difficulty must be an integer between 1 and 5');
-
   if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   if (type === 'DYNAMIC') {
@@ -150,8 +148,21 @@ async function createQuestion(req, res) {
     if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
       return res.status(400).json({ error: 'distractorCount must be an integer between 1 and 10' });
     }
-    const templateError = validateTemplate(content.trim(), answerExpression.trim());
+    const templateError = validateTemplate(content.trim(), answerExpression.trim(), variables);
     if (templateError) return res.status(400).json({ error: templateError });
+
+   let varTypes = [];
+   let varMin = [];
+   let varMax = [];
+   let i = 0;
+   while(i < variables.length){
+    varTypes[i] = variables[i].type;
+    varMin[i] = variables[i].min;
+    varMax[i] = variables[i].max;
+    i++;
+   }
+
+
 
     const question = await prisma.question.create({
       data: {
@@ -164,6 +175,9 @@ async function createQuestion(req, res) {
         difficulty,
 	fixedImage: fixedImage,
         answerExpression: answerExpression.trim(),
+	varTypes: varTypes,
+	varMin: varMin,
+	varMax: varMax,
         ...(answerUnit?.trim() && { answerUnit: answerUnit.trim() }),
         ...(distractorCount !== undefined && { distractorCount }),
       },
@@ -181,6 +195,16 @@ async function createQuestion(req, res) {
     ? validateFillInBlank(choices)
     : validateMultipleChoice(choices);
   if (choiceError) return res.status(400).json({ error: choiceError });
+  /*let varTypes = [];
+  let varMin = [];
+  let varMax = [];
+  let i = 0;
+  while(i < variables.length){
+   varTypes[i] = variables[i].type;
+   varMin[i] = variables[i].min;
+   varMax[i] = variables[i].max;
+   i++;
+  }*/
 
   const question = await prisma.question.create({
     data: {
@@ -191,6 +215,9 @@ async function createQuestion(req, res) {
       correctExplanation: correctExplanation.trim(),
       incorrectExplanation: incorrectExplanation.trim(),
       difficulty,
+      varTypes: varTypes,
+      varMin: varMin,
+      varMax: varMax,
       fixedImage: fixedImage,
       choices: { create: buildChoices(type, choices) },
     },
@@ -207,7 +234,7 @@ async function createQuestion(req, res) {
 
 async function updateQuestion(req, res) {
   const { questionId } = req.params;
-  const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds } = req.body;
+  const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, variables } = req.body;
   const errors = [];
 
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
@@ -225,7 +252,7 @@ async function updateQuestion(req, res) {
     if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
       return res.status(400).json({ error: 'distractorCount must be an integer between 1 and 10' });
     }
-    const templateError = validateTemplate(content.trim(), answerExpression.trim());
+    const templateError = validateTemplate(content.trim(), answerExpression.trim(), variables);
     if (templateError) return res.status(400).json({ error: templateError });
   } else {
     const choiceError = type === 'FILL_IN_BLANK'

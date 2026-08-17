@@ -298,7 +298,6 @@ export default function CourseDetailScreen({ navigation, route }) {
     enrollmentCount,
     teachers: initialTeachers = [],
   } = route.params ?? {};
-
   const isSectionMode = mode === 'section';
 
   const [chapters, setChapters] = useState([]);

@@ -253,4 +253,26 @@ async function removeQuestionFromSection(req, res) {
   res.json({ message: 'Question removed from section' });
 }
 
-module.exports = { completeSection, addQuestionToSection, removeQuestionFromSection };
+async function updateSection(req,res){
+ const section = await prisma.section.findUnique({
+  where: { id: req.params.sectionId },
+ });
+ {
+  const chapter = await prisma.chapter.findUnique({
+   where: {id: section.chapterId}
+  });
+  const course = await prisma.course.findUnique({
+   where: {id: chapter.courseId}
+  });
+  if(req.user.sub !== course.teacherId) return res.status(403).json({error: 'You do not own the course this section is in'});
+ }
+ const update = await prisma.section.update({
+  where: {id: req.params.sectionId },
+  data: {
+   questionNumber: req.body?.questionNumber ?? "0",
+  }
+ });
+ res.json({ message: 'updated section'});
+}
+
+module.exports = { completeSection, addQuestionToSection, removeQuestionFromSection, updateSection };

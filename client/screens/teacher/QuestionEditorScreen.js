@@ -4,13 +4,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View, Text, TextInput, StyleSheet, Switch,
   Pressable, Platform, InputAccessoryView, KeyboardAvoidingView,
-  FlatList, Image
+  FlatList, Image, Modal,
 } from 'react-native';
 import { ScrollView} from 'react-native-gesture-handler';
 import { alertLib } from '../../lib/alertLib';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../lib/api';
 import { ScreenSurface, ShadowButton, SlotPickerSheet, SlotConfigOverlay, SlotToolbar, AnswerSlotToolbar } from '../../components/base';
+import {VariableSelector} from '../../components/VariableSelector';
 import { parseDynamic } from '../../components/base/DynamicContent';
 import { colors, typeScale, screenPadding, radius } from '../../theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,7 +28,14 @@ function FieldLabel({ label, hint }) {
   );
 }
 
+function Segment({children}){
+ return <View style={[styles.input]}>
+  {children}
+ </View>
+}
+
 // ─── Accent text input (border changes on focus) ──────────────────────────────
+
 
 const AccentInput = React.forwardRef(function AccentInput(
   { accent = 'purple', style, onFocus, onBlur, ...props },
@@ -85,6 +93,28 @@ function TypeSelector({ value, onChange }) {
   return (
     <View style={styles.typeGrid}>
       {TYPES.map(t => {
+        const on = value === t.value;
+        return (
+          <Pressable key={t.value} onPress={() => onChange(t.value)}
+            style={[styles.typeBtn, on && styles.typeBtnActive]}>
+            <Text style={[styles.typeBtnText, on && styles.typeBtnTextActive]} numberOfLines={2}>
+              {t.label}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+function QuestionTypeSelector({value, onChange}){
+ const qTYPES = [
+  { value: 'MULTIPLE_CHOICE', label: 'Multiple\nchoice' },
+  { value: 'FILL_IN_BLANK',   label: 'Fill in\nblank' },
+ ];
+  return (
+    <View style={styles.typeGrid}>
+      {qTYPES.map(t => {
         const on = value === t.value;
         return (
           <Pressable key={t.value} onPress={() => onChange(t.value)}
@@ -585,6 +615,60 @@ const answerPanel = StyleSheet.create({
   },
 });
 
+//----DYN STUFF-------------------------------
+
+  function DynAnswerFiBSet({vars, item, setAnswr}) {
+   console.log(item);
+   const [setAnswerExpression, setIsAnswerExprFocused] = useState(false);
+   return (
+     <Segment>
+             <FieldLabel label="ANSWER EXPRESSION" />
+	     <VariableSelector vars={vars}
+	      textBox={item.answers[0]}
+	      setTextBox={(str)=>{
+	       let tmp = item;
+               tmp.answers[0]=str;
+               setAnswr(tmp);
+	      }}
+	     />
+             <AccentInput
+               accent="purple"
+               value={item.answers[0]}
+               onChangeText={(str)=>{
+		let tmp = item;
+		tmp.answers[0]=str;
+		setAnswr(tmp);
+	       }}
+               onFocus={() => setIsAnswerExprFocused(true)}
+               onBlur={() => setIsAnswerExprFocused(false)}
+               inputAccessoryViewID={Platform.OS === 'ios' ? 'answer-expr-toolbar' : undefined}
+               placeholder="e.g. [1.number] or [1.mass] or [1]+[2]"
+               style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}
+             />
+              { <View style={styles.dynRow}>
+                <View style={{ flex: 1 }}>
+                  <FieldLabel label="Possible Answers" hint="default 1" />
+                  <AccentInput
+                    accent="purple"
+                    value={item.answers.length}
+                    onChangeText={(newNum)=>{
+		     let i = 0;
+		     let tmp = {id:item.id, answers:[]};
+		     while(i < Number(newNum)){
+		      tmp.answers.push("");
+		      i++;
+		     }
+		     setAnswr(tmp);
+		    }}
+                    placeholder="1"
+                    keyboardType="numeric"
+                  />
+                </View>
+               </View>}    
+           </Segment>
+   )}
+
+
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 const BLANK_MC = [
@@ -635,11 +719,13 @@ export default function QuestionEditorScreen({ navigation, route }) {
   const answerExprSelectionRef = useRef({ start: 0, end: 0 });
   const answerExprRef = useRef(null);
   const [isAnswerExprFocused, setIsAnswerExprFocused] = useState(false);
-
+  const [dynFiBAnswers, setDynFiBAnswers] = useState([{id: 0, answers:[""]}]);
   // Load available tags
   useEffect(() => {
     api.get('/tags', token).then(tags => setAvailableTags(tags ?? [])).catch(() => {});
   }, [token]);
+  const [vars, setVars] = useState([{index:0, type:"NA", min:"0", max:"1"}]);
+
 
   // Load question data if editing
   useEffect(() => {
@@ -653,6 +739,15 @@ export default function QuestionEditorScreen({ navigation, route }) {
         setCorrectExplanation(q.correctExplanation ?? '');
         setIncorrectExplanation(q.incorrectExplanation ?? '');
         setFixedImageID(q.fixedImage ?? "");
+	if(q.varTypes && q.varMin && q.varMax){
+         let i = 0;
+	 let tvars = [];
+	 while(i < q.varTypes.length){
+          tvars.push({index: i, type: q.varTypes[i], min: q.varMin[i], max: q.varMax[i]});
+	  i++;
+	 }
+	 setVars(tvars);
+	}
 	setSelectedTagIds((q.tags ?? []).map(t => t.id));
         if (q.type === 'MULTIPLE_CHOICE' || q.type === 'FILL_IN_BLANK') {
           if (q.choices?.length) {
@@ -740,12 +835,14 @@ export default function QuestionEditorScreen({ navigation, route }) {
         tagIds: selectedTagIds,
         choices: buildChoices(),
         fixedImage: fixedImageID,
+	variables: vars,
       };
       if (type === 'DYNAMIC') {
         body.answerExpression = answerExpression.trim();
         if (answerUnit.trim()) body.answerUnit = answerUnit.trim();
         const dc = parseInt(distractorCount, 10);
         if (!isNaN(dc)) body.distractorCount = dc;
+
       }
       if (isEdit) {
         await api.patch(`/questions/${questionId}`, body, token);
@@ -759,8 +856,80 @@ export default function QuestionEditorScreen({ navigation, route }) {
       setSaving(false);
     }
   };
-
+  const [questionType, setQuestionType] = useState('MULTIPLE_CHOICE');
+  const [dynFiBBlanks, setDynFiBBlanks] = useState(1);
   const answerRefs = buildAnswerRefs(content);
+  const [varModVis, setVarModVis] = useState(false);
+
+  function VarRow({index, name}){
+   if(name == "NA")return <></>;
+   return(
+    <Segment>
+     <View style={modstyles.row}>
+      <Text>[{index}]</Text>
+      <Text>{name}</Text>
+      <Pressable onPress={()=>{
+       let i = (index+1);
+       while(i < vars.length){
+        vars[i].index -= 1;
+        i++;
+       }
+       vars.splice(index, 1);
+       setVars(vars);
+      }}>
+       <Ionicons size="23" name="trash-outline"/>
+      </Pressable>
+     </View>
+    </Segment>
+   );
+  }
+
+  function SliderSaveRow({name, desc}) {
+   const [min, setMin] = useState("1");
+   const [max, setMax] = useState("2");
+   return (
+    <Segment>
+     <View style={modstyles.row}>
+      <Text style={modstyles.name}>{name}</Text>
+
+      <Text style={modstyles.desc} numberOfLines={2}>
+        {desc}
+      </Text>
+
+{/*
+      <View style={styles.saveBtn}>
+        <Button
+          title="Save"
+          onPress={() => onSave({ name, desc, value })}
+        />
+      </View>*/}
+      <Text>Min:</Text>
+      <TextInput
+       onChangeText={setMin}
+       value={min}
+      />
+      <Text>Max:</Text>
+      <TextInput
+       onChangeText={setMax}
+       value={max}
+      />
+      <Pressable style={modstyles.saveBtn}
+       onPress={()=>{
+        vars.push({type: name, index: vars.length, min: min, max: max});
+        setVars(vars);
+	setVarModVis(false);
+      }}>
+       <Text>ADD VARIABLE</Text>
+      </Pressable>
+     </View>
+    </Segment>
+   );
+  }
+
+  const VAR_TYPES=[
+   {vType:'Element', desc: "Random element using atomic number for range", iType: 'range'},
+   {vType:'Number', desc: "Random floating-point number", iType: 'range'},
+  ];
 
   return (
     <ScreenSurface>
@@ -792,15 +961,47 @@ export default function QuestionEditorScreen({ navigation, route }) {
         {/* TYPE */}
         <FieldLabel label="TYPE" />
         <TypeSelector value={type} onChange={setType} />
+        
+	{type === 'DYNAMIC' && (
+         <>
+          <FieldLabel label="VARIABLES"/>
+	   <FlatList
+	    data={vars}
+            renderItem={({item})=>{
+	     return(<VarRow index={item.index} name={item.type}/>);
+	    }}
+	   />
+	   <Segment>
+            <Pressable onPress={()=>{setVarModVis(true)}}>
+             <Text>ADD VARIABLE</Text>
+	    </Pressable>
+	   </Segment>
+	   <Modal
+	    visible={varModVis}
+	    transparent={false}
+	    animationType="slide"
+	    onRequestClose={()=>{
+             setVarModVis(false)
+	    }}>
+	    <FlatList
+             data={VAR_TYPES}
+	     renderItem={({item})=>{
+              return(<SliderSaveRow name={item.vType} desc={item.desc}/>);
+	     }}
+	    />
+             <Pressable onPress={()=>{setVarModVis(false)}}>
+             <Text>Cancel</Text>
+	    </Pressable>
 
+	   </Modal>
+ 
+	 </>
+	)}
         {/* QUESTION */}
         {type === 'DYNAMIC' ? (
           <View style={styles.fieldLabelRow}>
             <Text style={styles.fieldLabel}>QUESTION</Text>
-            <Pressable onPress={() => setSlotPickerVisible(true)} style={styles.addSlotBtn}>
-              <Ionicons name="add" size={13} color={colors.purple600} />
-              <Text style={styles.addSlotText}>Add slot</Text>
-            </Pressable>
+       	    <VariableSelector vars={vars} textBox={content} setTextBox={setContent}/>
           </View>
         ) : (
           <FieldLabel label="QUESTION" />
@@ -824,13 +1025,13 @@ export default function QuestionEditorScreen({ navigation, route }) {
         />
 
         {/* DYNAMIC: slot chip strip */}
-        {type === 'DYNAMIC' && <SlotStrip content={content} onChipPress={openSlotConfig} />}
+        {/*{type === 'DYNAMIC' && <SlotStrip content={content} onChipPress={openSlotConfig} />}*/}
 
 	{/* Show syntax on text input*/}
 	<FormatSyntaxCard/>
 
         {/* DYNAMIC: template syntax */}
-        {type === 'DYNAMIC' && <TemplateSyntaxCard />}
+        {/*type === 'DYNAMIC' && <TemplateSyntaxCard />*/}
 
         {/* MC OPTIONS */}
         {type === 'MULTIPLE_CHOICE' && (
@@ -878,22 +1079,46 @@ export default function QuestionEditorScreen({ navigation, route }) {
         {/* DYNAMIC FIELDS */}
         {type === 'DYNAMIC' && (
           <>
-            <FieldLabel label="ANSWER EXPRESSION" />
-            <AccentInput
-              ref={answerExprRef}
-              accent="purple"
-              value={answerExpression}
-              onChangeText={setAnswerExpression}
-              onSelectionChange={e => { answerExprSelectionRef.current = e.nativeEvent.selection; }}
-              onFocus={() => setIsAnswerExprFocused(true)}
-              onBlur={() => setIsAnswerExprFocused(false)}
-              inputAccessoryViewID={Platform.OS === 'ios' ? 'answer-expr-toolbar' : undefined}
-              placeholder="e.g. [1.number] or [1.mass] or [1]+[2]"
-              style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}
-            />
-            {answerRefs.length > 0 && (
+	    <FieldLabel label="ANSWER METHOD" />
+	    <QuestionTypeSelector value={questionType} onChange={setQuestionType} />
+	    <FieldLabel label="ANSWER(S)"/>
+	    {questionType === 'FILL_IN_BLANK' && (
+             <FlatList
+	      data={dynFiBAnswers}
+	      renderItem={({item})=>{
+
+               return <DynAnswerFiBSet item={item} vars={vars} setAnswr={(itm)=>{
+	        console.log(itm);
+	        let tmp = dynFiBAnswers;
+		tmp[itm.id] = itm;
+		setDynFiBAnswers(tmp);
+	       }}/>
+	      }}
+	      scrollEnabled={false}
+             />
+
+	   )}
+	    {questionType === 'MULTIPLE_CHOICE' && (<>
+             <FieldLabel label="ANSWER EXPRESSION" />
+	     <VariableSelector vars={vars} textBox={answerExpression} setTextBox={setAnswerExpression}/>
+             <AccentInput
+               ref={answerExprRef}
+               accent="purple"
+               value={answerExpression}
+               onChangeText={setAnswerExpression}
+               onSelectionChange={e => { answerExprSelectionRef.current = e.nativeEvent.selection; }}
+               onFocus={() => setIsAnswerExprFocused(true)}
+               onBlur={() => setIsAnswerExprFocused(false)}
+               inputAccessoryViewID={Platform.OS === 'ios' ? 'answer-expr-toolbar' : undefined}
+               placeholder="e.g. [1.number] or [1.mass] or [1]+[2]"
+               style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}
+             />
+	   </>)}
+
+
+            {/*{answerRefs.length > 0 && (
               <AnswerReferencePanel slots={answerRefs} onInsert={insertAnswerRef} />
-            )}
+            )}*/}
             <View style={styles.dynRow}>
               <View style={{ flex: 1 }}>
                 <FieldLabel label="ANSWER UNIT" hint="optional, e.g. g" />
@@ -904,16 +1129,32 @@ export default function QuestionEditorScreen({ navigation, route }) {
                   placeholder="g"
                 />
               </View>
-              <View style={{ flex: 1 }}>
-                <FieldLabel label="DISTRACTORS" hint="default 3" />
-                <AccentInput
-                  accent="purple"
-                  value={distractorCount}
-                  onChangeText={setDistractorCount}
-                  placeholder="3"
-                  keyboardType="numeric"
-                />
-              </View>
+	      {questionType === 'MULTIPLE_CHOICE' && (
+               <View style={{ flex: 1 }}>
+                 <FieldLabel label="DISTRACTORS" hint="default 3" />
+                 <AccentInput
+                   accent="purple"
+                   value={distractorCount}
+                   onChangeText={setDistractorCount}
+                   placeholder="3"
+                   keyboardType="numeric"
+                 />
+               </View>
+	      )}
+	      {questionType === 'FILL_IN_BLANK' && (
+               <View style={{ flex: 1 }}>
+                 <FieldLabel label="ANSWERS" hint="default 1" />
+                 <AccentInput
+                   accent="purple"
+                   value={dynFiBBlanks}
+                   onChangeText={setDynFiBBlanks}
+                   placeholder="1"
+                   keyboardType="numeric"
+                 />
+               </View>
+	      )}
+
+
             </View>
           </>
         )}
@@ -993,6 +1234,33 @@ export default function QuestionEditorScreen({ navigation, route }) {
     </ScreenSurface>
   );
 }
+
+const modstyles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    gap: 10,
+  },
+  name: {
+    width: 90,
+    fontWeight: "600",
+  },
+  desc: {
+    flex: 1,
+  },
+  sliderWrap: {
+    width: 150,
+    justifyContent: "center",
+  },
+  slider: {
+    width: "100%",
+  },
+  saveBtn: {
+    width: 80,
+  },
+});
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 

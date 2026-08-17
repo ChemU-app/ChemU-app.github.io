@@ -633,6 +633,7 @@ export default function TeacherHomeScreen({ navigation }) {
   const [exporting, setExporting] = useState(false);
   const [studentSheet, setStudentSheet] = useState(null); // { title, students }
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [requests, setRequests] = useState([]);
 
   const load = useCallback(async () => {
     try {
@@ -648,7 +649,16 @@ export default function TeacherHomeScreen({ navigation }) {
           }
         })
       );
+      //const reqs = await api.get(
       setClassMap(Object.fromEntries(entries));
+      let reqs = [];
+      console.log(coursesData);
+      let i = 0;
+      while(i < coursesData.length){
+       let rq = await api.get(`/courses/${coursesData[i].id}/join-requests`, token);
+       console.log(rq);
+       i++;
+      }
     } catch (e) {
       console.warn('TeacherHomeScreen load error:', e.message);
     } finally {
@@ -832,6 +842,13 @@ export default function TeacherHomeScreen({ navigation }) {
               ))}
             </View>
           )}
+          <ListHeader
+            label="JOIN REQUESTS"
+            meta={`${courses.length} ${courses.length === 1 ? 'request' : 'requests'}`}
+          />
+	  {
+
+	  }
         </ScrollView>
       )}
 
