@@ -272,7 +272,6 @@ async function updateQuestion(req, res) {
     const oldTagIds = existingQ.tagIds ?? [];
     const addedTagIds = newTagIds.filter(id => !oldTagIds.includes(id));
     const removedTagIds = oldTagIds.filter(id => !newTagIds.includes(id));
-
     const updateData = {
       type,
       content: content.trim(),
@@ -284,9 +283,22 @@ async function updateQuestion(req, res) {
     };
 
     if (type === 'DYNAMIC') {
+      let varTypes = [];
+      let varMin = [];
+      let varMax = [];
+      let i = 0;
+      while(i < variables.length){
+       varTypes[i] = variables[i].type;
+       varMin[i] = variables[i].min;
+       varMax[i] = variables[i].max;
+       i++;
+      }
       updateData.answerExpression = answerExpression.trim();
       updateData.answerUnit = answerUnit?.trim() || null;
       updateData.distractorCount = distractorCount ?? null;
+      updateData.varTypes = varTypes;
+      updateData.varMin = varMin;
+      updateData.varMax = varMax;
     } else {
       // Clear dynamic fields when changing type away from DYNAMIC
       updateData.answerExpression = null;

@@ -454,7 +454,7 @@ function generateDistractors(correctValue, resolutions, brackets, answerExpressi
   let distractions = [];
   let i=0;
   while(i < count){
-   distractions.push(renderContent(answerExpression, parseBrackets(answerExpression), vars[i+1]));
+   distractions.push(evaluateAnswer(answerExpression, resolutions, vars[i+1]));
    i++;
   }
   return distractions;
