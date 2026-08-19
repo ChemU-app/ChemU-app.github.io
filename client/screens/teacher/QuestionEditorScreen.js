@@ -55,6 +55,20 @@ const AccentInput = React.forwardRef(function AccentInput(
   );
 });
 
+function AccentInputNoRef({ accent = 'purple', style, ...props }) {
+  const [focused, setFocused] = useState(false);
+  const borderColor = focused ? accentColor(accent) : colors.neutral200;
+  return (
+    <TextInput
+      {...props}
+      style={[styles.input, { borderColor }, style]}
+      placeholderTextColor={colors.neutral400}
+    />
+  );
+};
+
+
+
 const AccentArea = React.forwardRef(function AccentArea(
   { accent = 'purple', rows = 3, style, onFocus, onBlur, ...props },
   ref,
@@ -74,6 +88,22 @@ const AccentArea = React.forwardRef(function AccentArea(
     />
   );
 });
+function AccentAreaNoRef({ accent = 'purple', rows = 3, style, onFocus, onBlur, ...props }) {
+  const [focused, setFocused] = useState(false);
+  const borderColor = focused ? accentColor(accent) : colors.neutral200;
+  return (
+    <MathTextInput
+      {...props}
+      style={[styles.textArea, { borderColor, minHeight: rows * 22 + 24 }, style]}
+      onFocus={e => { setFocused(true); onFocus?.(e); }}
+      onBlur={e => { setFocused(false); onBlur?.(e); }}
+      placeholderTextColor={colors.neutral400}
+      multiline
+      textAlignVertical="top"
+    />
+  );
+};
+
 
 function accentColor(accent) {
   if (accent === 'teal') return colors.teal400;
@@ -627,20 +657,20 @@ const answerPanel = StyleSheet.create({
 	      textBox={item.answers[0]}
 	      setTextBox={(str)=>{
 	       let tmp = item;
+	       console.log(str);
                tmp.answers[0]=str;
                setAnswr(tmp);
 	      }}
 	     />
-             <AccentInput
+             <AccentArea
                accent="purple"
                value={item.answers[0]}
                onChangeText={(str)=>{
 		let tmp = item;
 		tmp.answers[0]=str;
+		console.log(str);
 		setAnswr(tmp);
 	       }}
-               onFocus={() => setIsAnswerExprFocused(true)}
-               onBlur={() => setIsAnswerExprFocused(false)}
                inputAccessoryViewID={Platform.OS === 'ios' ? 'answer-expr-toolbar' : undefined}
                placeholder="e.g. [1.number] or [1.mass] or [1]+[2]"
                style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}
@@ -1086,11 +1116,19 @@ export default function QuestionEditorScreen({ navigation, route }) {
              <FlatList
 	      data={dynFiBAnswers}
 	      renderItem={({item})=>{
-
                return <DynAnswerFiBSet item={item} vars={vars} setAnswr={(itm)=>{
-	        console.log(itm);
-	        let tmp = dynFiBAnswers;
-		tmp[itm.id] = itm;
+	        let tmp = [];
+		let i = 0;
+		while(i < item.id){
+                 tmp.push(dynFiBAnswers[i]);
+		 i++;
+		}
+		tmp.push(itm);
+		i++;
+		while(i < dynFiBAnswers[i]){
+                 tmp.push(dynFiBAnswers[i]);
+		 i++;
+		};
 		setDynFiBAnswers(tmp);
 	       }}/>
 	      }}
@@ -1102,7 +1140,6 @@ export default function QuestionEditorScreen({ navigation, route }) {
              <FieldLabel label="ANSWER EXPRESSION" />
 	     <VariableSelector vars={vars} textBox={answerExpression} setTextBox={setAnswerExpression}/>
              <AccentInput
-               ref={answerExprRef}
                accent="purple"
                value={answerExpression}
                onChangeText={setAnswerExpression}
@@ -1146,8 +1183,18 @@ export default function QuestionEditorScreen({ navigation, route }) {
                  <FieldLabel label="ANSWERS" hint="default 1" />
                  <AccentInput
                    accent="purple"
-                   value={dynFiBBlanks}
-                   onChangeText={setDynFiBBlanks}
+                   value={dynFiBAnswers.length}
+                   onChangeText={(value)=>{
+                    let newLen = Number(value);
+		    if(isNaN(newLen)) newLan = 1;
+		    let dyn = [];
+		    let i = 0;
+		    while(i < newLen){
+		     dyn.push({id: i, answers:[""]});
+                     i++;
+		    }
+		    setDynFiBAnswers(dyn);
+		   }}
                    placeholder="1"
                    keyboardType="numeric"
                  />
