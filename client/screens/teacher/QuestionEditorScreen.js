@@ -648,33 +648,55 @@ const answerPanel = StyleSheet.create({
 //----DYN STUFF-------------------------------
 
   function DynAnswerFiBSet({vars, item, setAnswr}) {
-   console.log(item);
+   
    const [setAnswerExpression, setIsAnswerExprFocused] = useState(false);
    return (
      <Segment>
-             <FieldLabel label="ANSWER EXPRESSION" />
-	     <VariableSelector vars={vars}
-	      textBox={item.answers[0]}
-	      setTextBox={(str)=>{
-	       let tmp = item;
-	       console.log(str);
-               tmp.answers[0]=str;
-               setAnswr(tmp);
-	      }}
-	     />
-             <AccentArea
-               accent="purple"
-               value={item.answers[0]}
-               onChangeText={(str)=>{
-		let tmp = item;
-		tmp.answers[0]=str;
-		console.log(str);
-		setAnswr(tmp);
-	       }}
-               inputAccessoryViewID={Platform.OS === 'ios' ? 'answer-expr-toolbar' : undefined}
-               placeholder="e.g. [1.number] or [1.mass] or [1]+[2]"
-               style={{ fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}
-             />
+
+	<FlatList
+	  data={item.answers}
+	  keyExtractor={(_, index) => `${item.id}-answer-${index}`}
+ 	 renderItem={({ item: answer, index }) => {
+    	const updateAnswer = (str) => {
+      	const updatedItem = {
+        	...item,
+       	 	answers: item.answers.map((currentAnswer, answerIndex) =>
+      		answerIndex === index ? str : currentAnswer
+      	  ),
+      	};
+	
+    	  setAnswr(updatedItem);
+    	};
+
+    	return (
+      	<>
+       	 <FieldLabel label={`ANSWER EXPRESSION ${index + 1}`} />
+	
+       	 <VariableSelector
+       	   vars={vars}
+       	   textBox={answer}
+       	   setTextBox={updateAnswer}
+       	 />
+	
+       	 <AccentArea
+       	   accent="purple"
+       	   value={answer}
+       	   onChangeText={updateAnswer}
+       	   inputAccessoryViewID={
+       	     Platform.OS === "ios"
+       	       ? `answer-expr-toolbar-${item.id}-${index}`
+       	       : undefined
+       	   }
+       	   placeholder="e.g. [1.number] or [1.mass] or [1]+[2]"
+       	   style={{
+       	     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
+       	   }}
+       	 />
+	      </>
+	    );
+	  }}
+	/>
+
               { <View style={styles.dynRow}>
                 <View style={{ flex: 1 }}>
                   <FieldLabel label="Possible Answers" hint="default 1" />
@@ -755,7 +777,8 @@ export default function QuestionEditorScreen({ navigation, route }) {
     api.get('/tags', token).then(tags => setAvailableTags(tags ?? [])).catch(() => {});
   }, [token]);
   const [vars, setVars] = useState([{index:0, type:"NA", min:"0", max:"1"}]);
-
+  const [questionType, setQuestionType] = useState('MULTIPLE_CHOICE');
+ 
 
   // Load question data if editing
   useEffect(() => {
@@ -769,6 +792,12 @@ export default function QuestionEditorScreen({ navigation, route }) {
         setCorrectExplanation(q.correctExplanation ?? '');
         setIncorrectExplanation(q.incorrectExplanation ?? '');
         setFixedImageID(q.fixedImage ?? "");
+	if(typeof q.questionType != undefined){
+	 setQuestionType((q.questionType == "M")?"MULTIPLE_CHOICE":"FILL_IN_BLANK");
+	 if(q.questionType == "F"){
+          console.log(q.dynFiBAnswers);
+	 }
+	}
 	if(q.varTypes && q.varMin && q.varMax){
          let i = 0;
 	 let tvars = [];
@@ -783,7 +812,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
           if (q.choices?.length) {
             if (q.type === 'FILL_IN_BLANK') {
               const sorted = [...q.choices].sort((a, b) => a.blankIndex - b.blankIndex);
-              setFibAnswers(sorted.map(c => c.content));
+              setFib(q.dynFiBAnswers);Answers(sorted.map(c => c.content));
             } else {
               setMcOptions(q.choices);
             }
@@ -848,7 +877,9 @@ export default function QuestionEditorScreen({ navigation, route }) {
       alertLib('Missing', 'At least one blank answer is required.'); return false;
     }
     if (type === 'DYNAMIC' && !answerExpression.trim()) {
-      alertLib('Missing', 'Answer expression is required for dynamic questions.'); return false;
+      if(questionType == "MULTIPLE_CHOICE"){
+       alertLib('Missing', 'Answer expression is required for dynamic questions.'); return false;
+      }
     }
     return true;
   };
@@ -868,6 +899,16 @@ export default function QuestionEditorScreen({ navigation, route }) {
 	variables: vars,
       };
       if (type === 'DYNAMIC') {
+        body.questionType = (questionType == "MULTIPLE_CHOICE")?"M":"F";;
+        {
+	 let i = 0;
+	 let fibAnswers = []
+	 while( i < dynFiBAnswers.length){
+	  fibAnswers.push(dynFiBAnswers[i].answers);
+	  i++;
+	 }
+         body.fibAnswers = fibAnswers;
+	}
         body.answerExpression = answerExpression.trim();
         if (answerUnit.trim()) body.answerUnit = answerUnit.trim();
         const dc = parseInt(distractorCount, 10);
@@ -886,7 +927,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
       setSaving(false);
     }
   };
-  const [questionType, setQuestionType] = useState('MULTIPLE_CHOICE');
+//  const [questionType, setQuestionType] = useState('MULTIPLE_CHOICE');
   const [dynFiBBlanks, setDynFiBBlanks] = useState(1);
   const answerRefs = buildAnswerRefs(content);
   const [varModVis, setVarModVis] = useState(false);

@@ -73,9 +73,6 @@ model Section {
   currentFor       StudentCourse[]     @relation("CurrentSection")
   currentForEnroll StudentEnrollment[] @relation("CurrentSectionEnroll")
   questionNumber   String?
-  varTypes 	   String[]
-  varMin	   String[]
-  varMax	   String[]
 }
 
 model Question {
@@ -100,6 +97,8 @@ model Question {
   varTypes             String[]
   varMin	       String[]
   varMax	       String[]
+  questionType	       String?
+  dynFiBAnswers	       Json?
 }
 
 model QuestionTag {

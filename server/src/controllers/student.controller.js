@@ -66,6 +66,29 @@ async function getStudentCourseProgress(req, res) {
   });
 }
 
+
+
+function finalizeAnswers(dynamicAnswers, vars) {
+  return dynamicAnswers.map(answerGroup =>
+    answerGroup.map(answer =>
+      answer.replace(/\[(\d+)\.([^\]]+)\]/g, (_, index, property) => {
+        return String(vars[Number(index)][property]);
+      })
+    )
+  );
+}
+
+function normalizeForChecking(finalizedAnswers) {
+  return finalizedAnswers.map(answerGroup =>
+    answerGroup.map(answer =>
+      answer
+        .toLowerCase()
+        .replace(/[\s\p{P}]/gu, "")
+    )
+  );
+}
+
+
 async function getStudentSectionQuestions(req, res) {
   const { sectionId } = req.params;
   const studentId = req.user.sub;
@@ -100,72 +123,137 @@ async function getStudentSectionQuestions(req, res) {
     if (q.type !== 'DYNAMIC') {
       return { ...q, choices: q.choices.map(({ isCorrect, ...choice }) => choice) };
     }
-    const count = q.distractorCount ?? 3;
-    let varParms = [];
-    let vars = [];
-    let usedElements = new Set();
-    let usedNumbers = new Set();
-    {
-     let i = 0;
-     while(i < q.varTypes.length){
-      varParms.push({type:q.varTypes[i], min:Number(q.varMin[i]), max:Number(q.varMax[i])});
-      i++;
-     }
-     let j=0;
-     while(j < count+1){
-      let tVars = [];
-      i=0;
-      while(i < varParms.length){
-       switch(varParms[i].type){
-       case "NA":{
-        tVars.push({type:"NA"});
-	break;
-       }
-       case "Number":{
-        let num = (Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
-	while(usedNumbers.has(num)){
-         num = (Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
-	}
-	tVars.push({type: "Number", num: num});
-	usedNumbers.add(num);
-	break;
-       }
-       case "Element":{
-        let elementIndex = Math.floor(Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
-	 while(usedElements.has(ELEMENTS[elementIndex].name)){
-	  elementIndex = Math.floor(Math.random() * (varParms[i].max -1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
-	 }
-	tVars.push({type:"Element", elm: ELEMENTS[elementIndex]});
-	usedElements.add(ELEMENTS[elementIndex].name);
-	break;
-       }
-       }
+    if(q.questionType == "M"){
+     const count = q.distractorCount ?? 3;
+     let varParms = [];
+     let vars = [];
+     let usedElements = new Set();
+     let usedNumbers = new Set();
+     {
+      let i = 0;
+      while(i < q.varTypes.length){
+       varParms.push({type:q.varTypes[i], min:Number(q.varMin[i]), max:Number(q.varMax[i])});
        i++;
       }
-      vars.push(tVars);
-      j++;
+      let j=0;
+      while(j < count+1){
+       let tVars = [];
+       i=0;
+       while(i < varParms.length){
+        switch(varParms[i].type){
+        case "NA":{
+         tVars.push({type:"NA"});
+ 	break;
+        }
+        case "Number":{
+         let num = (Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+ 	while(usedNumbers.has(num)){
+          num = (Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+ 	}
+ 	tVars.push({type: "Number", num: num});
+ 	usedNumbers.add(num);
+ 	break;
+        }
+        case "Element":{
+         let elementIndex = Math.floor(Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+ 	 while(usedElements.has(ELEMENTS[elementIndex].name)){
+ 	  elementIndex = Math.floor(Math.random() * (varParms[i].max -1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+ 	 }
+ 	tVars.push({type:"Element", elm: ELEMENTS[elementIndex]});
+ 	 usedElements.add(ELEMENTS[elementIndex].name);
+	 break;
+        }
+        }
+        i++;
+       }
+       vars.push(tVars);
+       j++;
+      }
      }
-    }
-    const brackets = parseBrackets(q.content);
-    const resolutions = resolveAll(brackets);
-    const resolvedContent = renderContent(q.content, brackets, vars[0]);
-    const correctValue = evaluateAnswer(q.answerExpression, resolutions, vars[0]);
-    const distractors = generateDistractors(correctValue, resolutions, brackets, q.answerExpression, count, vars);
-    const dynamicChoices = buildDynamicChoices(correctValue, distractors);
+     const brackets = parseBrackets(q.content);
+     const resolutions = resolveAll(brackets);
+     const resolvedContent = renderContent(q.content, brackets, vars[0]);
+     const correctValue = evaluateAnswer(q.answerExpression, resolutions, vars[0]);
+     const distractors = generateDistractors(correctValue, resolutions, brackets, q.answerExpression, count, vars);
+     const dynamicChoices = buildDynamicChoices(correctValue, distractors);
 
-    await prisma.questionResolution.upsert({
-      where: { studentId_questionId: { studentId, questionId: q.id } },
-      update: { resolvedContent, choicesJson: JSON.stringify(dynamicChoices), createdAt: new Date() },
-      create: { studentId, questionId: q.id, resolvedContent, choicesJson: JSON.stringify(dynamicChoices) },
-    });
+     await prisma.questionResolution.upsert({
+       where: { studentId_questionId: { studentId, questionId: q.id } },
+       update: { resolvedContent, choicesJson: JSON.stringify(dynamicChoices), createdAt: new Date() },
+       create: { studentId, questionId: q.id, resolvedContent, choicesJson: JSON.stringify(dynamicChoices) },
+     });
 
-    return {
-      ...q,
-      content: resolvedContent,
-      choices: dynamicChoices.map(({ isCorrect, ...c }) => c),
-    };
+     return {
+       ...q,
+       content: resolvedContent,
+       choices: dynamicChoices.map(({ isCorrect, ...c }) => c),
+     };
+   } else {
+
+     let varParms = [];
+     let vars = [];
+     let usedElements = new Set();
+     let usedNumbers = new Set();
+     {
+      let i = 0;
+      while(i < q.varTypes.length){
+       varParms.push({type:q.varTypes[i], min:Number(q.varMin[i]), max:Number(q.varMax[i])});
+       i++;
+      }
+      let j=0;
+       let tVars = [];
+       i=0;
+       while(i < varParms.length){
+        switch(varParms[i].type){
+        case "NA":{
+         tVars.push({type:"NA"});
+        break;
+        }
+        case "Number":{
+         let num = (Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+        while(usedNumbers.has(num)){
+          num = (Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+        }
+        tVars.push({type: "Number", num: num});
+        usedNumbers.add(num);
+        break;
+        }
+        case "Element":{
+         let elementIndex = Math.floor(Math.random() * (varParms[i].max-1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+         while(usedElements.has(ELEMENTS[elementIndex].name)){
+          elementIndex = Math.floor(Math.random() * (varParms[i].max -1 - varParms[i].min-1 + 1)) + varParms[i].min-1;
+         }
+        tVars.push({type:"Element", elm: ELEMENTS[elementIndex]});
+         usedElements.add(ELEMENTS[elementIndex].name);
+         break;
+        }
+        }
+        i++;
+       }
+       vars.push(tVars);
+     }
+     const brackets = parseBrackets(q.content);
+     const resolutions = resolveAll(brackets);
+     const resolvedContent = renderContent(q.content, brackets, vars[0]);
+  //   const correctValue = evaluateAnswer(q.answerExpression, resolutions, vars[0]);
+     const resAnswers = finalizeAnswers(q.dynFiBAnswers.data, vars[0]);
+     const resUseAnswers = normalizeForChecking(resAnswers);
+
+     await prisma.questionResolution.upsert({
+       where: { studentId_questionId: { studentId, questionId: q.id } },
+       update: { resolvedContent, choicesJson: JSON.stringify(dynamicChoices), createdAt: new Date() },
+       create: { studentId, questionId: q.id, resolvedContent, choicesJson: JSON.stringify(dynamicChoices) },
+     });
+
+     return {
+       ...q,
+       content: resolvedContent,
+       choices: dynamicChoices.map(({ isCorrect, ...c }) => c),
+     };
+
+   };
   }));
-
+   
   let qn = section?.questionNumber ?? "0";
   qn = Number(qn);
   if(qn == 0 || qn >= processedQuestions.length){

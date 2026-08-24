@@ -108,16 +108,26 @@ export default function SectionScreen({ navigation, route }) {
   }, [courseId, token]);
 
   const q = questions[currentIndex];
-  const isFib = q?.type === 'FILL_IN_BLANK';
+
+  let isFib = q?.type === 'FILL_IN_BLANK';
+  if(q?.type == "DYNAMIC") isFib = q?.questionType == "F";
+  
   const mcChoices = q?.choices?.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i) ?? [];
   const blankCount = isFib ? new Set((q.choices ?? []).map(c => c.blankIndex)).size : 0;
   const correctChoice = mcChoices.find(c => correctChoiceIds.includes(c.id));
   const xp = q ? (q.difficulty ?? 1) * 10 : 0;
   const progress = questions.length > 0 ? currentIndex / questions.length : 0;
   const fixedImage = q?(q.fixedImage ?? ""):"";
-  const canCheck = isFib
+
+  let canCheck = 0;
+  if(q?.type == 'FILL_IN_BLANK'){
+   canCheck = isFib
     ? fibInputs.length === blankCount && blankCount > 0 && fibInputs.every(v => v?.trim())
     : !!selected;
+  } else if(q?.questionType == "F") {
+   console.log(q);
+   canCheck = q?.dynFiBAnswers.data.length;
+  }
 
   const optionState = (choice) => {
     if (!checked || !result) return selected?.id === choice.id ? 'selected' : 'idle';

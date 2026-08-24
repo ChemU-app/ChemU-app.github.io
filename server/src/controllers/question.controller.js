@@ -131,7 +131,8 @@ async function getSectionQuestions(req, res) {
 
 async function createQuestion(req, res) {
   const teacherId = req.user.sub;
-  const { type, content, correctExplanation, incorrectExplanation, difficulty, variables, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds } = req.body;
+  console.log(req.body);
+  const { type, content, correctExplanation, incorrectExplanation, difficulty, variables, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, questionType, fibAnswers } = req.body;
   const safeTagIds = Array.isArray(tagIds) ? tagIds : [];
   const errors = [];
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
@@ -142,14 +143,20 @@ async function createQuestion(req, res) {
   if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   if (type === 'DYNAMIC') {
-    if (!answerExpression || !answerExpression.trim()) {
-      return res.status(400).json({ error: 'answerExpression is required for DYNAMIC questions' });
-    }
-    if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
+    if(!questionType) return res.status(400).json({error: "No Question Type"});
+    if(!((questionType == "M") | (questionType == "F"))) return res.status(400).json({error: "Bad Question Type"});
+    if(questionType == "M"){
+     if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
       return res.status(400).json({ error: 'distractorCount must be an integer between 1 and 10' });
+     }
+     if (!answerexpression || !answerexpression.trim()) {
+      return res.status(400).json({ error: 'answerexpression is required for dynamic questions' });
+     }
+     const templateError = validateTemplate(content.trim(), answerExpression.trim(), variables);
+     if (templateError) return res.status(400).json({ error: templateError });
+    }else{
+     if(!fibAnswers) return res.status(400).json({error: 'No Answers.'});
     }
-    const templateError = validateTemplate(content.trim(), answerExpression.trim(), variables);
-    if (templateError) return res.status(400).json({ error: templateError });
 
    let varTypes = [];
    let varMin = [];
@@ -161,11 +168,7 @@ async function createQuestion(req, res) {
     varMax[i] = variables[i].max;
     i++;
    }
-
-
-
-    const question = await prisma.question.create({
-      data: {
+    let data= {
         teacherId,
         tagIds: safeTagIds,
         type,
@@ -180,7 +183,15 @@ async function createQuestion(req, res) {
 	varMax: varMax,
         ...(answerUnit?.trim() && { answerUnit: answerUnit.trim() }),
         ...(distractorCount !== undefined && { distractorCount }),
-      },
+    };
+
+    if(type == "DYNAMIC"){
+     data.questionType = questionType;
+     data.dynFiBAnswers = {data: fibAnswers};
+    }
+
+    const question = await prisma.question.create({
+      data: data,
       include: { choices: true, tags: { select: { id: true, name: true, color: true } } },
     });
     if (safeTagIds.length) {
@@ -234,7 +245,7 @@ async function createQuestion(req, res) {
 
 async function updateQuestion(req, res) {
   const { questionId } = req.params;
-  const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, variables } = req.body;
+  const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, variables, questionType, fibAnswers} = req.body;
   const errors = [];
 
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
@@ -246,11 +257,17 @@ async function updateQuestion(req, res) {
   if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   if (type === 'DYNAMIC') {
-    if (!answerExpression || !answerExpression.trim()) {
-      return res.status(400).json({ error: 'answerExpression is required for DYNAMIC questions' });
-    }
-    if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
+    if(!questionType) return res.status(400).json({error: "No Question Type"});
+    if(!((questionType == "M") | (questionType == "F"))) return res.status(400).json({error: "Bad Question Type"});
+    if(questionType == "M"){
+     if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
       return res.status(400).json({ error: 'distractorCount must be an integer between 1 and 10' });
+     }
+      if (!answerexpression || !answerexpression.trim()) {
+       return res.status(400).json({ error: 'answerexpression is required for dynamic questions' });
+      }
+    } else {
+     if(!fibAnswers) return res.status(400).json({error: 'No Answers.'});
     }
     const templateError = validateTemplate(content.trim(), answerExpression.trim(), variables);
     if (templateError) return res.status(400).json({ error: templateError });
@@ -293,6 +310,8 @@ async function updateQuestion(req, res) {
        varMax[i] = variables[i].max;
        i++;
       }
+      updateData.questionType = questionType;
+      updateData.dynFiBAnswers = {data: fibAnswers};
       updateData.answerExpression = answerExpression.trim();
       updateData.answerUnit = answerUnit?.trim() || null;
       updateData.distractorCount = distractorCount ?? null;
