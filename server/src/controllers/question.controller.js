@@ -442,12 +442,69 @@ async function attemptQuestion(req, res) {
     });
   }
 
+  // FILL_IN_BLANK: text-based submission
+  if (question.type === 'DYNAMIC') {
+   if(question.questionType == 'F'){
+    console.log(question);
+    if (!Array.isArray(fibAnswers) || fibAnswers.length === 0) {
+      return res.status(400).json({ error: 'fibAnswers must be a non-empty array for fill-in-blank questions' });
+    }
+
+    const correctByBlank = {};
+    for (const c of question.choices) {
+      if (c.isCorrect) correctByBlank[c.blankIndex] = c.content;
+    }
+    const totalBlanks = Object.keys(correctByBlank).length;
+
+    if (fibAnswers.length !== totalBlanks) {
+      return res.status(400).json({ error: `Must provide ${totalBlanks} answer(s), one per blank` });
+    }
+
+    let score = 0;
+    const blankResults = [];
+    for (let i = 0; i < fibAnswers.length; i++) {
+      const raw = String(fibAnswers[i]).trim();
+      const submitted = isNumericAnswer(raw) ? raw : raw.replace(/\s+/g, '').toLowerCase();
+      const correct = correctByBlank[i];
+      const ok = submitted === correct;
+      if (ok) score++;
+      blankResults.push(ok);
+    }
+
+    const isCorrect = score === totalBlanks;
+    const xpDelta = isCorrect ? question.difficulty * 10 : 0;
+
+    const attempt = await prisma.questionAttempt.create({
+      data: { studentId, questionId, sessionId, attemptedAt: new Date(), score },
+      include: { answers: true },
+    });
+
+    await recordActivity(sessionId, xpDelta);
+    await awardBadges(studentId);
+
+    const correctAnswers = Object.entries(correctByBlank)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([, v]) => v);
+
+    return res.status(201).json({
+      attempt,
+      isCorrect,
+      explanation: isCorrect ? question.correctExplanation : question.incorrectExplanation,
+      xpDelta,
+      correctChoiceIds: [],
+      correctAnswers,
+      blankResults,
+    });
+   }
+  }
+
   if (!Array.isArray(choiceIds) || choiceIds.length === 0) {
     return res.status(400).json({ error: 'choiceIds must be a non-empty array' });
   }
 
   // DYNAMIC question handling
   if (question.type === 'DYNAMIC') {
+   if(question.questionType == 'M'){
     if (choiceIds.length !== 1) {
       return res.status(400).json({ error: 'Dynamic questions require exactly one choice' });
     }
@@ -480,6 +537,7 @@ async function attemptQuestion(req, res) {
       xpDelta,
       correctChoiceIds: dynamicCorrectId ? [dynamicCorrectId] : [],
     });
+   }
   }
 
   // Validate all submitted choices belong to this question

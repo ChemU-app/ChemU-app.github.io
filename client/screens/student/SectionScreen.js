@@ -113,12 +113,16 @@ export default function SectionScreen({ navigation, route }) {
   if(q?.type == "DYNAMIC") isFib = q?.questionType == "F";
   
   const mcChoices = q?.choices?.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i) ?? [];
-  const blankCount = isFib ? new Set((q.choices ?? []).map(c => c.blankIndex)).size : 0;
+  let blankCount = (isFib && (q.type != 'DYNAMIC')) ? new Set((q.choices ?? []).map(c => c.blankIndex)).size : 0;
   const correctChoice = mcChoices.find(c => correctChoiceIds.includes(c.id));
   const xp = q ? (q.difficulty ?? 1) * 10 : 0;
   const progress = questions.length > 0 ? currentIndex / questions.length : 0;
   const fixedImage = q?(q.fixedImage ?? ""):"";
-
+  if(q.type == 'DYNAMIC'){
+   if(q.questionType == 'F'){
+    console.log(q);
+   }
+  }
   let canCheck = 0;
   if(q?.type == 'FILL_IN_BLANK'){
    canCheck = isFib

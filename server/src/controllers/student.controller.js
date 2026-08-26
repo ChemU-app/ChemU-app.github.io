@@ -66,15 +66,23 @@ async function getStudentCourseProgress(req, res) {
   });
 }
 
+function finalizeAnswers(d, vars = []) {
+  if (!Array.isArray(d)) return [];
 
+  return d.map(row =>
+    Array.isArray(row)
+      ? row.map(value => {
+          if (typeof value !== "string") return value;
 
-function finalizeAnswers(dynamicAnswers, vars) {
-  return dynamicAnswers.map(answerGroup =>
-    answerGroup.map(answer =>
-      answer.replace(/\[(\d+)\.([^\]]+)\]/g, (_, index, property) => {
-        return String(vars[Number(index)][property]);
-      })
-    )
+          return value.replace(
+            /\[(\d+)\.([^[\].]+)\]/g,
+            (match, index, property) => {
+              const object = vars[Number(index)];
+              return object?.[property] ?? match;
+            }
+          );
+        })
+      : row
   );
 }
 
@@ -236,19 +244,18 @@ async function getStudentSectionQuestions(req, res) {
      const resolutions = resolveAll(brackets);
      const resolvedContent = renderContent(q.content, brackets, vars[0]);
   //   const correctValue = evaluateAnswer(q.answerExpression, resolutions, vars[0]);
-     const resAnswers = finalizeAnswers(q.dynFiBAnswers.data, vars[0]);
+     const resAnswers = finalizeAnswers(q?.dynFiBAnswers?.data, vars[0]);
      const resUseAnswers = normalizeForChecking(resAnswers);
-
-     await prisma.questionResolution.upsert({
+     /*await prisma.questionResolution.upsert({
        where: { studentId_questionId: { studentId, questionId: q.id } },
        update: { resolvedContent, choicesJson: JSON.stringify(dynamicChoices), createdAt: new Date() },
        create: { studentId, questionId: q.id, resolvedContent, choicesJson: JSON.stringify(dynamicChoices) },
-     });
+     });*/
 
      return {
        ...q,
        content: resolvedContent,
-       choices: dynamicChoices.map(({ isCorrect, ...c }) => c),
+       choices: resUseAnswers,
      };
 
    };
