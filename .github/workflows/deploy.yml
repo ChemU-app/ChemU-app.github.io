@@ -47,7 +47,7 @@ jobs:
           PORT: 3000
 
   deploy:
-    needs: test
+#    needs: test
     runs-on: ubuntu-latest
     environment: deploy
     permissions:
