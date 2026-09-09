@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import {
   View, Text, ScrollView, StyleSheet, Pressable, TextInput,
   Modal, Animated, KeyboardAvoidingView, Platform, RefreshControl,
-  ActivityIndicator
+  ActivityIndicator, TouchableOpacity
 } from 'react-native';
 import { alertLib } from '../../lib/alertLib';
 import { Ionicons } from '@expo/vector-icons';
@@ -411,6 +411,9 @@ export default function QuestionBankScreen({ navigation, route }) {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [adding, setAdding]           = useState(false);
 
+  const [isAddTagModalVisible, toggleAddTagModal] = useState(false);
+  const [tagName, setTagName] = useState("");
+
   const load = useCallback(async () => {
     try {
       const qs = await api.get('/questions', token);
@@ -549,7 +552,60 @@ export default function QuestionBankScreen({ navigation, route }) {
               onPress={() => toggleTag(tag.name)}
             />
           ))}
+	  <FilterChip
+	  	label="Add"
+		active={true}
+		onPress={() => toggleAddTagModal(true)}
+		icon={<Ionicons name="add-outline" size={11} color={colors.neutral}/>}
+		/>
         </ScrollView>
+	<Modal
+        visible={isAddTagModalVisible}
+        transparent={false}
+        animationType="fade"
+        onRequestClose={()=>{toggleAddTagModal(false)}}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.title}>Add a Tag</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Insert a tag name"
+              value={tagName}
+              onChangeText={setTagName}
+              autoCapitalize="none"
+              autoFocus
+            />
+
+            <View style={styles.buttonRow}>
+              <TouchableOpacity
+                style={[styles.button, styles.cancelButton]}
+                onPress={()=>{toggleAddTagModal(false)}}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.button, styles.submitButton]}
+                onPress={()=>{
+			try{
+		      		api.post('/tags/', {
+					name: tagName
+				},token);
+			} catch (e){
+				
+			}
+			toggleAddTagModal(false)
+			navigation.navigate('QuestionBank')
+		}}
+              >
+                <Text style={styles.buttonText}>Submit</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
       </View>
 
       {/* Content */}

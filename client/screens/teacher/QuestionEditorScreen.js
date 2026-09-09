@@ -916,8 +916,10 @@ export default function QuestionEditorScreen({ navigation, route }) {
 
       }
       if (isEdit) {
+        console.error("PATCH");
         await api.patch(`/questions/${questionId}`, body, token);
       } else {
+        console.error("POST");
         await api.post('/questions', body, token);
       }
       navigation.goBack();
@@ -927,7 +929,6 @@ export default function QuestionEditorScreen({ navigation, route }) {
       setSaving(false);
     }
   };
-//  const [questionType, setQuestionType] = useState('MULTIPLE_CHOICE');
   const [dynFiBBlanks, setDynFiBBlanks] = useState(1);
   const answerRefs = buildAnswerRefs(content);
   const [varModVis, setVarModVis] = useState(false);
@@ -1166,7 +1167,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
 		}
 		tmp.push(itm);
 		i++;
-		while(i < dynFiBAnswers[i]){
+		while(i < dynFiBAnswers.length){
                  tmp.push(dynFiBAnswers[i]);
 		 i++;
 		};

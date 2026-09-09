@@ -8,6 +8,8 @@ async function getAllTags(req, res) {
 }
 
 async function createOrGetTag(req, res) {
+  console.log("T")
+  console.log(req.body);
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'name is required' });
 

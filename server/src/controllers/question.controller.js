@@ -131,7 +131,6 @@ async function getSectionQuestions(req, res) {
 
 async function createQuestion(req, res) {
   const teacherId = req.user.sub;
-  console.log(req.body);
   const { type, content, correctExplanation, incorrectExplanation, difficulty, variables, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, questionType, fibAnswers } = req.body;
   const safeTagIds = Array.isArray(tagIds) ? tagIds : [];
   const errors = [];
@@ -149,7 +148,7 @@ async function createQuestion(req, res) {
      if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
       return res.status(400).json({ error: 'distractorCount must be an integer between 1 and 10' });
      }
-     if (!answerexpression || !answerexpression.trim()) {
+     if (!answerExpression || !answerExpression.trim()) {
       return res.status(400).json({ error: 'answerexpression is required for dynamic questions' });
      }
      const templateError = validateTemplate(content.trim(), answerExpression.trim(), variables);
@@ -201,21 +200,21 @@ async function createQuestion(req, res) {
     }
     return res.status(201).json(question);
   }
+   let varTypes = [];
+   let varMin = [];
+   let varMax = [];
+   let i = 0;
+   while(i < variables.length){
+    varTypes[i] = variables[i].type;
+    varMin[i] = variables[i].min;
+    varMax[i] = variables[i].max;
+    i++;
+   }
 
   const choiceError = type === 'FILL_IN_BLANK'
     ? validateFillInBlank(choices)
     : validateMultipleChoice(choices);
   if (choiceError) return res.status(400).json({ error: choiceError });
-  /*let varTypes = [];
-  let varMin = [];
-  let varMax = [];
-  let i = 0;
-  while(i < variables.length){
-   varTypes[i] = variables[i].type;
-   varMin[i] = variables[i].min;
-   varMax[i] = variables[i].max;
-   i++;
-  }*/
 
   const question = await prisma.question.create({
     data: {
@@ -247,38 +246,40 @@ async function updateQuestion(req, res) {
   const { questionId } = req.params;
   const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, variables, questionType, fibAnswers} = req.body;
   const errors = [];
-
+  console.log(req.body);
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
   if (!content || !content.trim()) errors.push('content is required');
   if (!correctExplanation || !correctExplanation.trim()) errors.push('correctExplanation is required');
   if (!incorrectExplanation || !incorrectExplanation.trim()) errors.push('incorrectExplanation is required');
   if (difficulty === undefined || !Number.isInteger(difficulty) || difficulty < 1 || difficulty > 5) errors.push('difficulty must be an integer between 1 and 5');
-
   if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   if (type === 'DYNAMIC') {
-    if(!questionType) return res.status(400).json({error: "No Question Type"});
-    if(!((questionType == "M") | (questionType == "F"))) return res.status(400).json({error: "Bad Question Type"});
+    if(!questionType) return res.status(401).json({error: "No Question Type"});
+    if(!((questionType == "M") | (questionType == "F"))) return res.status(402).json({error: "Bad Question Type"});
     if(questionType == "M"){
      if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
-      return res.status(400).json({ error: 'distractorCount must be an integer between 1 and 10' });
+      return res.status(403).json({ error: 'distractorCount must be an integer between 1 and 10' });
      }
-      if (!answerexpression || !answerexpression.trim()) {
-       return res.status(400).json({ error: 'answerexpression is required for dynamic questions' });
+      if (!answerExpression || !answerExpression.trim()) {
+       return res.status(404).json({ error: 'answerexpression is required for dynamic questions' });
       }
     } else {
-     if(!fibAnswers) return res.status(400).json({error: 'No Answers.'});
+     if(!fibAnswers) return res.status(405).json({error: 'No Answers.'});
     }
-    const templateError = validateTemplate(content.trim(), answerExpression.trim(), variables);
-    if (templateError) return res.status(400).json({ error: templateError });
+    const templateError = validateTemplate(content.trim(), answerExpression.trim(), variables, questionType);
+    if (templateError) return res.status(406).json({ error: templateError });
+
   } else {
     const choiceError = type === 'FILL_IN_BLANK'
       ? validateFillInBlank(choices)
       : validateMultipleChoice(choices);
-    if (choiceError) return res.status(400).json({ error: choiceError });
+    if (choiceError) return res.status(407).json({ error: choiceError });
   }
 
   const { error, status, question: existingQ } = await ownedQuestion(questionId, req.user.sub);
+  console.error("DID ERROR");
+  console.error(error);
   if (error) return res.status(status).json({ error });
 
   try {
@@ -445,18 +446,13 @@ async function attemptQuestion(req, res) {
   // FILL_IN_BLANK: text-based submission
   if (question.type === 'DYNAMIC') {
    if(question.questionType == 'F'){
-    console.log(question);
+    console.log(req.body);
+    let choices = req.body.choices;
     if (!Array.isArray(fibAnswers) || fibAnswers.length === 0) {
       return res.status(400).json({ error: 'fibAnswers must be a non-empty array for fill-in-blank questions' });
     }
 
-    const correctByBlank = {};
-    for (const c of question.choices) {
-      if (c.isCorrect) correctByBlank[c.blankIndex] = c.content;
-    }
-    const totalBlanks = Object.keys(correctByBlank).length;
-
-    if (fibAnswers.length !== totalBlanks) {
+    if (fibAnswers.length !== choices.length) {
       return res.status(400).json({ error: `Must provide ${totalBlanks} answer(s), one per blank` });
     }
 
@@ -465,13 +461,18 @@ async function attemptQuestion(req, res) {
     for (let i = 0; i < fibAnswers.length; i++) {
       const raw = String(fibAnswers[i]).trim();
       const submitted = isNumericAnswer(raw) ? raw : raw.replace(/\s+/g, '').toLowerCase();
-      const correct = correctByBlank[i];
-      const ok = submitted === correct;
+      let ok = false;
+      let k = 0;
+      while(k < choices[i].length && ok == false){
+       let tmp = choices[i][k].replace(/\s+/g, '').toLowerCase();
+       if(submitted === tmp) ok = true;
+       k++;
+      }
       if (ok) score++;
       blankResults.push(ok);
     }
 
-    const isCorrect = score === totalBlanks;
+    const isCorrect = score === choices.length;
     const xpDelta = isCorrect ? question.difficulty * 10 : 0;
 
     const attempt = await prisma.questionAttempt.create({
@@ -482,9 +483,12 @@ async function attemptQuestion(req, res) {
     await recordActivity(sessionId, xpDelta);
     await awardBadges(studentId);
 
-    const correctAnswers = Object.entries(correctByBlank)
-      .sort(([a], [b]) => Number(a) - Number(b))
-      .map(([, v]) => v);
+    const correctAnswers = [];
+    let i = 0;
+    while(i < choices.length){
+     correctAnswers.push(choices[i][0]);
+     i++;
+    }
 
     return res.status(201).json({
       attempt,

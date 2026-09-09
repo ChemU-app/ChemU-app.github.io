@@ -638,7 +638,7 @@ function buildDynamicChoices(correctValue, distractors) {
 const elmProps = ["name", "symbol", "molarMass", "atomicNumber", "neutrons", "protons", "electrons", "charge", "chargeElectrons"];
 const numProps = ["number"];
 
-function validateTemplate(content, answerExpression, vars) {
+function validateTemplate(content, answerExpression, vars, type) {
   const brackets = parseBrackets(content);
   //if (brackets.length === 0) return 'content must contain at least one bracket expression';
   for (const b of brackets) {
@@ -747,8 +747,9 @@ function validateTemplate(content, answerExpression, vars) {
   //}
 
   // Validate answerExpression
+  if (type == 'F')return null
   if (!answerExpression || !answerExpression.trim()) {
-    return 'answerExpression is required';
+    return 'no answerExpression';
   }
 
   // Comparison expression: [gt(N.prop,M.prop)] or [lt(N.prop,M.prop)]

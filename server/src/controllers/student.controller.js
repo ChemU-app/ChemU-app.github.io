@@ -66,24 +66,22 @@ async function getStudentCourseProgress(req, res) {
   });
 }
 
-function finalizeAnswers(d, vars = []) {
-  if (!Array.isArray(d)) return [];
-
-  return d.map(row =>
-    Array.isArray(row)
-      ? row.map(value => {
-          if (typeof value !== "string") return value;
-
-          return value.replace(
-            /\[(\d+)\.([^[\].]+)\]/g,
-            (match, index, property) => {
-              const object = vars[Number(index)];
-              return object?.[property] ?? match;
-            }
-          );
-        })
-      : row
-  );
+function finalizeAnswers(d,res, vars = []) {
+ let retVal = [];
+ if(d?.length > 0){
+  let i = 0;
+  let storage = [];
+  while(i < d?.length){
+   let k = 0;
+   while(k < d[i]?.length){
+    storage.push(evaluateAnswer(d[i][k], res, vars));
+    k++;
+   }
+   retVal.push(storage);
+   i++;
+  }
+ }
+ return retVal;
 }
 
 function normalizeForChecking(finalizedAnswers) {
@@ -243,19 +241,11 @@ async function getStudentSectionQuestions(req, res) {
      const brackets = parseBrackets(q.content);
      const resolutions = resolveAll(brackets);
      const resolvedContent = renderContent(q.content, brackets, vars[0]);
-  //   const correctValue = evaluateAnswer(q.answerExpression, resolutions, vars[0]);
-     const resAnswers = finalizeAnswers(q?.dynFiBAnswers?.data, vars[0]);
-     const resUseAnswers = normalizeForChecking(resAnswers);
-     /*await prisma.questionResolution.upsert({
-       where: { studentId_questionId: { studentId, questionId: q.id } },
-       update: { resolvedContent, choicesJson: JSON.stringify(dynamicChoices), createdAt: new Date() },
-       create: { studentId, questionId: q.id, resolvedContent, choicesJson: JSON.stringify(dynamicChoices) },
-     });*/
-
+     const resAnswers = finalizeAnswers(q?.dynFiBAnswers?.data, resolutions, vars[0]);
      return {
        ...q,
        content: resolvedContent,
-       choices: resUseAnswers,
+       choices: resAnswers,
      };
 
    };
@@ -268,7 +258,7 @@ async function getStudentSectionQuestions(req, res) {
     const j = Math.floor(Math.random() * (i + 1));
     [processedQuestions[i], processedQuestions[j]] = [processedQuestions[j], processedQuestions[i]];
   }
-
+  console.log(processedQuestions);
   res.json(processedQuestions);
   }else{
    let qs = [];

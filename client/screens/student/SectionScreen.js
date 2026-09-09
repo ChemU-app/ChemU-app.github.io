@@ -113,14 +113,16 @@ export default function SectionScreen({ navigation, route }) {
   if(q?.type == "DYNAMIC") isFib = q?.questionType == "F";
   
   const mcChoices = q?.choices?.filter((c, i, arr) => arr.findIndex(x => x.id === c.id) === i) ?? [];
-  let blankCount = (isFib && (q.type != 'DYNAMIC')) ? new Set((q.choices ?? []).map(c => c.blankIndex)).size : 0;
+  let blankCount = (isFib) ? new Set((q.choices ?? []).map(c => c.blankIndex)).size : 0;
   const correctChoice = mcChoices.find(c => correctChoiceIds.includes(c.id));
   const xp = q ? (q.difficulty ?? 1) * 10 : 0;
   const progress = questions.length > 0 ? currentIndex / questions.length : 0;
   const fixedImage = q?(q.fixedImage ?? ""):"";
-  if(q.type == 'DYNAMIC'){
-   if(q.questionType == 'F'){
-    console.log(q);
+  const qType = q?.type ?? "";
+  const qqType = q?.questionType ?? "";
+  if(qType == 'DYNAMIC'){
+   if(qqType == 'F'){
+    blankCount = q?.choices?.length;
    }
   }
   let canCheck = 0;
@@ -128,9 +130,16 @@ export default function SectionScreen({ navigation, route }) {
    canCheck = isFib
     ? fibInputs.length === blankCount && blankCount > 0 && fibInputs.every(v => v?.trim())
     : !!selected;
-  } else if(q?.questionType == "F") {
-   console.log(q);
-   canCheck = q?.dynFiBAnswers.data.length;
+  } else if(q?.type == 'DYNAMIC'){
+   if(q?.questionType == "F") {
+    canCheck = isFib
+    ? fibInputs.length === blankCount && blankCount > 0 && fibInputs.every(v => v?.trim())
+    : !!selected;
+   }else if(q?.questionType == 'M'){
+    canCheck = (selected != null); 
+   }
+  }else if(q?.type == 'MULTIPLE_CHOICE'){
+   canCheck = (selected != null);
   }
 
   const optionState = (choice) => {
@@ -147,6 +156,11 @@ export default function SectionScreen({ navigation, route }) {
       const body = isFib
         ? { sessionId, fibAnswers: fibInputs.map(v => v.trim()) }
         : { sessionId, choiceIds: [selected.id] };
+      if(q?.type == 'DYNAMIC'){
+       if(q?.questionType == 'F'){
+        body.choices = q.choices;
+       }
+      }
       const res = await api.post(`/questions/${q.id}/attempt`, body, token);
       setResult(res.isCorrect ? 'correct' : 'wrong');
       setCorrectChoiceIds(res.correctChoiceIds ?? []);
@@ -350,7 +364,10 @@ export default function SectionScreen({ navigation, route }) {
                 label={String.fromCharCode(65 + ci)}
                 text={choice.content}
                 state={optionState(choice)}
-                onPress={() => !checked && setSelected(choice)}
+                onPress={() => {
+		 canCheck=true; 
+		 !checked && setSelected(choice)
+		}}
                 disabled={checked}
               />
             ))}
@@ -363,7 +380,7 @@ export default function SectionScreen({ navigation, route }) {
             label="Check answer"
             variant="primary"
             onPress={handleCheck}
-            disabled={!canCheck}
+            disabled={!canCheck }
             style={styles.checkBtn}
           />
         )}
