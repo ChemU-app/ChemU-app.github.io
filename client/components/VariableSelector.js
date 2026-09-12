@@ -81,7 +81,6 @@ function VarItem({text, setText, index, type}){
     }}style={styles.addSlotBtn}>
      <Text>Molar Mass</Text>
     </Pressable>
-
     <Pressable onPress={()=>{
      setText(text + `[${index}.charge]`);
     }} style={styles.addSlotBtn} >
@@ -95,6 +94,61 @@ function VarItem({text, setText, index, type}){
     </SideScroll>
   </Segment>
  )}
+ case "Compound":{
+ return (
+  <Segment>
+   <Text>[{index}] {type}</Text>
+    <SideScroll>
+    <Pressable onPress={()=>{
+     setText(text + `[${index}.name]`);
+    }}style={styles.addSlotBtn}>
+     <Text>Name</Text>
+    </Pressable>
+    <Pressable onPress={()=>{
+     setText(text + `[${index}.formula]`);
+    }}style={styles.addSlotBtn}>
+     <Text>Formula</Text>
+    </Pressable>
+
+    <Pressable onPress={()=>{
+     setText(text + `[${index}.displayFormula]`);
+    }}style={styles.addSlotBtn}>
+     <Text>Display Formula</Text>
+    </Pressable>
+    <Pressable onPress={()=>{
+     setText(text + `[${index}.molarMass]`);
+    }}style={styles.addSlotBtn}>
+     <Text>Molar Mass</Text>
+    </Pressable>
+    <Pressable onPress={()=>{
+     setText(text + `[${index}.compoundType]`);
+    }}style={styles.addSlotBtn}>
+     <Text>Compound Type</Text>
+    </Pressable>
+    <Pressable onPress={()=>{
+     setText(text + `[${index}.stateAtRoomTemperature]`);
+    }}style={styles.addSlotBtn}>
+     <Text>State at room Temperature</Text>
+    </Pressable>
+    <Pressable onPress={()=>{
+     setText(text + `[${index}.elements]`);
+    }}style={styles.addSlotBtn}>
+     <Text>Elements</Text>
+    </Pressable>
+    <Pressable onPress={()=>{
+     setText(text + `[${index}.elementCount]`);
+    }} style={styles.addSlotBtn} >
+     <Text>Element Count</Text>
+    </Pressable>
+    <Pressable onPress={()=>{
+     setText(text + `[${index}.atomCount]`);
+    }} style={styles.addSlotBtn}>
+     <Text>Atom Count</Text>
+    </Pressable>
+    </SideScroll>
+  </Segment>
+ )
+ }
  default:{
   return <Segment>
    <Text>[{index}] {type}</Text>

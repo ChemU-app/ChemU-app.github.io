@@ -1,4 +1,4 @@
-const {ELEMENTS} = require('../data/elements');
+const {ELEMENTS, COMPOUNDS} = require('../data/elements');
 const prisma = require('../lib/prisma');
 const {
   parseBrackets, resolveAll, renderContent,
@@ -66,36 +66,948 @@ async function getStudentCourseProgress(req, res) {
   });
 }
 
-function finalizeAnswers(d,res, vars = []) {
- let retVal = [];
- if(d?.length > 0){
-  let i = 0;
-  let storage = [];
-  while(i < d?.length){
-   let k = 0;
-   while(k < d[i]?.length){
-    storage.push(evaluateAnswer(d[i][k], res, vars));
-    k++;
-   }
-   retVal.push(storage);
-   i++;
+
+//	OOOOOOOOOOOOOOO
+//
+//
+function finalizeAnswers(data, res, vars) {
+  if (!Array.isArray(data)) {
+    data = [[data]];
   }
- }
- return retVal;
+   return data.map(row =>
+    row.map(item =>
+      evaluateAnswer(
+        item,
+	res,
+        vars
+      )
+    )
+  );
+/*  console.log(data)
+
+  const subscriptDigits = {
+    0: '₀',
+    1: '₁',
+    2: '₂',
+    3: '₃',
+    4: '₄',
+    5: '₅',
+    6: '₆',
+    7: '₇',
+    8: '₈',
+    9: '₉',
+    '+': '₊',
+    '-': '₋',
+    '=': '₌',
+    '(': '₍',
+    ')': '₎',
+  };
+
+  function getVariableValue(index, property) {
+    const variable = vars[index];
+
+    if (variable == null) {
+      return undefined;
+    }
+
+    if (
+      typeof variable === 'object' &&
+      variable[property] !== undefined
+    ) {
+      return variable[property];
+    }
+
+    if (
+      typeof variable === 'object' &&
+      variable.elm != null &&
+      typeof variable.elm === 'object' &&
+      variable.elm[property] !== undefined
+    ) {
+      return variable.elm[property];
+    }
+
+    return undefined;
+  }
+
+  function stringifyValue(value) {
+    if (value == null) {
+      return '';
+    }
+
+    if (typeof value === 'object') {
+      if (value.name != null) {
+        return String(value.name);
+      }
+
+      if (value.symbol != null) {
+        return String(value.symbol);
+      }
+
+      if (value.value != null) {
+        return String(value.value);
+      }
+    }
+
+    return String(value);
+  }
+
+  function replaceVariables(answer) {
+    return answer.replace(
+      /\[(\d+)\.([A-Za-z_$][\w$]*)\]/g,
+      (match, index, property) => {
+        const value = getVariableValue(
+          Number(index),
+          property
+        );
+
+        return value === undefined
+          ? match
+          : stringifyValue(value);
+      }
+    );
+  }
+
+  function replaceSubscripts(answer) {
+    return answer.replace(
+      /_\(([^()]*)\)/g,
+      (_, value) =>
+        value
+          .split('')
+          .map(character =>
+            subscriptDigits[character] ?? character
+          )
+          .join('')
+    );
+  }
+
+  function evaluateMath(answer) {
+    const trimmed = answer.trim();
+
+    if (trimmed === '') {
+      return answer;
+    }
+
+    const expression = trimmed.replace(
+      /\^\(([^()]*)\)/g,
+      '**($1)'
+    );
+
+    if (
+      !/^[\d\s()+\-*/  /*%.eE]+$/.test(expression)
+    ) {
+      return answer;
+    }
+
+    const result = Function(
+      `"use strict"; return (${expression});`
+    )();
+
+    return Number.isFinite(result)
+      ? result
+      : answer;
+  }
+
+  return data.map(answerGroup => {
+    if (!Array.isArray(answerGroup)) {
+      return [];
+    }
+
+    return answerGroup
+      .map(answer => {
+        if (answer == null || answer === '') {
+          return answer;
+        }
+
+        if (typeof answer !== 'string') {
+          return answer;
+        }
+
+        try {
+          const replacedAnswer =
+            replaceVariables(answer);
+
+          const answerWithSubscripts =
+            replaceSubscripts(replacedAnswer);
+
+          const evaluatedAnswer =
+            evaluateMath(answerWithSubscripts);
+
+          if (
+            evaluatedAnswer == null ||
+            Number.isNaN(evaluatedAnswer) ||
+            (
+              typeof evaluatedAnswer === 'string' &&
+              evaluatedAnswer.trim().toLowerCase() === 'nan'
+            )
+          ) {
+            return answer;
+          }
+
+          return evaluatedAnswer;
+        } catch {
+          return answer;
+        }
+      })
+      .filter(answer => {
+        if (answer == null) {
+          return false;
+        }
+
+        return !(
+          typeof answer === 'string' &&
+          answer.trim().toLowerCase() === 'nan'
+        );
+      });
+  });*/
 }
 
+
+
 function normalizeForChecking(finalizedAnswers) {
-  return finalizedAnswers.map(answerGroup =>
-    answerGroup.map(answer =>
-      answer
-        .toLowerCase()
-        .replace(/[\s\p{P}]/gu, "")
-    )
+  if (!Array.isArray(finalizedAnswers)) {
+    return [];
+  }
+
+  return finalizedAnswers.map(answerGroup => {
+    if (!Array.isArray(answerGroup)) {
+      return [];
+    }
+
+    return answerGroup.map(answer =>
+    String(answer)
+  .toLowerCase()
+  .replace(/^[\s\p{P}]+|[\s\p{P}]+$/gu, '')
+    );
+  });
+}
+
+
+
+function parseJsonValue(value, fallback = {}) {
+  if (value == null) return fallback;
+
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+
+  return value;
+}
+
+function shuffle(array) {
+  const result = [...array];
+
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+
+    [result[i], result[j]] = [
+      result[j],
+      result[i],
+    ];
+  }
+
+  return result;
+}
+
+function randomInteger(min, max) {
+  min = Math.ceil(Number(min));
+  max = Math.floor(Number(max));
+
+  if (
+    !Number.isFinite(min) ||
+    !Number.isFinite(max)
+  ) {
+    return 0;
+  }
+
+  if (max < min) {
+    [min, max] = [max, min];
+  }
+
+  return (
+    Math.floor(
+      Math.random() * (max - min + 1)
+    ) + min
   );
 }
 
+function normalizeQuestionCount(value) {
+  const count = Number(value);
+
+  if (!Number.isFinite(count) || count < 0) {
+    return 0;
+  }
+
+  return Math.floor(count);
+}
+
+function questionHasTag(question, tagName) {
+  return Array.isArray(question.tags)
+    ? question.tags.some(
+        tag => tag.name === tagName
+      )
+    : false;
+}
+
+function isDynamicQuestion(question) {
+  return (
+    String(question?.type ?? '').toUpperCase() ===
+    'DYNAMIC'
+  );
+}
+
+function isMultipleChoiceQuestion(question) {
+  return (
+    String(question?.questionType ?? '').toUpperCase() ===
+    'M'
+  );
+}
+
+function isFillInBlankQuestion(question) {
+  return (
+    String(question?.questionType ?? '').toUpperCase() ===
+    'F'
+  );
+}
+
+function isNaLike(value) {
+  return (
+    value == null ||
+    value === 'NA' ||
+    value?.type === 'NA'
+  );
+}
+
+function isNanLike(value) {
+  if (typeof value === 'number') {
+    return Number.isNaN(value);
+  }
+
+  return (
+    typeof value === 'string' &&
+    value.trim().toLowerCase() === 'nan'
+  );
+}
+
+function selectQuestionsByTag(
+  questions,
+  questionsPerTag
+) {
+  const selectedQuestions = [];
+  const selectedQuestionIds = new Set();
+
+  for (const [
+    tagName,
+    requestedValue,
+  ] of Object.entries(questionsPerTag)) {
+    const matchingQuestions = questions.filter(
+      question =>
+        questionHasTag(question, tagName)
+    );
+
+    if (matchingQuestions.length === 0) {
+      continue;
+    }
+
+    const requestedCount =
+      normalizeQuestionCount(requestedValue);
+
+    const targetCount =
+      requestedCount <= 0 ||
+      requestedCount > matchingQuestions.length
+        ? matchingQuestions.length
+        : requestedCount;
+
+    const shuffledMatches =
+      shuffle(matchingQuestions);
+
+    const unusedMatches =
+      shuffledMatches.filter(
+        question =>
+          !selectedQuestionIds.has(question.id)
+      );
+
+    const previouslySelectedMatches =
+      shuffledMatches.filter(question =>
+        selectedQuestionIds.has(question.id)
+      );
+
+    const tagSelection = unusedMatches.slice(
+      0,
+      targetCount
+    );
+
+    while (tagSelection.length < targetCount) {
+      const source =
+        previouslySelectedMatches.length > 0
+          ? previouslySelectedMatches
+          : shuffledMatches;
+
+      if (source.length === 0) {
+        break;
+      }
+
+      tagSelection.push(
+        source[
+          (tagSelection.length -
+            unusedMatches.length) %
+            source.length
+        ]
+      );
+    }
+
+    for (const question of tagSelection) {
+      selectedQuestions.push(question);
+      selectedQuestionIds.add(question.id);
+    }
+  }
+
+  return selectedQuestions;
+}
+
+function generateVariableSets(
+  question,
+  numberOfSets
+) {
+  const varTypes = Array.isArray(question.varTypes)
+    ? question.varTypes
+    : [];
+
+  const varMins = Array.isArray(question.varMin)
+    ? question.varMin
+    : [];
+
+  const varMaxs = Array.isArray(question.varMax)
+    ? question.varMax
+    : [];
+
+  const variableParameters = varTypes.map(
+    (type, index) => ({
+      type,
+      min: Number(varMins[index]),
+      max: Number(varMaxs[index]),
+    })
+  );
+
+  const variableSets = [];
+  const usedSignatures = new Set();
+
+  const maxUniqueAttempts = Math.max(
+    numberOfSets * 20,
+    50
+  );
+
+  let attempts = 0;
+
+  function createVariableSet() {
+    return variableParameters.map(parameter => {
+      switch (parameter.type) {
+        case 'NA':
+          return {
+            type: 'NA',
+            value: null,
+          };
+
+        case 'Number':
+          return {
+            type: 'Number',
+            num: randomInteger(
+              parameter.min,
+              parameter.max
+            ),
+          };
+
+        case 'Element': {
+          const minIndex = Math.max(
+            0,
+            Number(parameter.min) - 1
+          );
+
+          const maxIndex = Math.min(
+            ELEMENTS.length - 1,
+            Number(parameter.max) - 1
+          );
+
+          const elementIndex = randomInteger(
+            minIndex,
+            maxIndex
+          );
+
+          return {
+            type: 'Element',
+            elm: ELEMENTS[elementIndex],
+          };
+        }
+	case 'Compound':{
+	  const minIndex = Math.max(
+            0,
+            Number(parameter.min) - 1
+          );
+
+          const maxIndex = Math.min( 
+            COMPOUNDS.length - 1,
+            Number(parameter.max) - 1
+          );
+
+          const elementIndex = randomInteger(
+            minIndex,
+            maxIndex
+          );
+
+          return {
+            type: 'Compound',
+            com: COMPOUNDS[elementIndex],
+          };
+	}
+
+        default:
+          return {
+            type: parameter.type,
+          };
+      }
+    });
+  }
+
+  while (
+    variableSets.length < numberOfSets &&
+    attempts < maxUniqueAttempts
+  ) {
+    attempts++;
+
+    const variableSet = createVariableSet();
+    const signature = JSON.stringify(variableSet);
+
+    if (!usedSignatures.has(signature)) {
+      usedSignatures.add(signature);
+      variableSets.push(variableSet);
+    }
+  }
+
+  while (variableSets.length < numberOfSets) {
+    variableSets.push(createVariableSet());
+  }
+
+  return variableSets;
+}
+
+function cleanDynamicAnswerGroups(answerGroups) {
+  if (!Array.isArray(answerGroups)) {
+    return [];
+  }
+
+  return answerGroups.map(answerGroup => {
+    if (!Array.isArray(answerGroup)) {
+      return answerGroup;
+    }
+
+    return answerGroup.filter(answer => {
+      return !isNanLike(answer);
+    });
+  });
+}
+
+function cleanDynamicChoices(choices) {
+  if (!Array.isArray(choices)) {
+    return [];
+  }
+
+  return choices.filter(choice => {
+    if (choice == null) {
+      return false;
+    }
+
+    if (typeof choice !== 'object') {
+      return !isNanLike(choice);
+    }
+
+    return !Object.values(choice).some(
+      value => isNanLike(value)
+    );
+  });
+}
+
+
+
+const superscriptMap = {
+  "-": "⁻",
+  "0": "⁰",
+  "1": "¹",
+  "2": "²",
+  "3": "³",
+  "4": "⁴",
+  "5": "⁵",
+  "6": "⁶",
+  "7": "⁷",
+  "8": "⁸",
+  "9": "⁹"
+};
+
+function toSuperscript(value) {
+  return String(value)
+    .split("")
+    .map(char => superscriptMap[char] ?? char)
+    .join("");
+}
+
+function formatNumber(value, sigFigures) {
+  if(sigFigures == 0) return value;
+  const number = Number(value);
+
+  if (!Number.isFinite(number)) {
+    return value;
+  }
+
+  const scientific = number.toExponential(sigFigures - 1);
+  const [coefficient, exponent] = scientific.split("e");
+  return `${coefficient}x10${toSuperscript(Number(exponent))}`;
+}
+
+function convertNumbers(data, sigFigures) {
+  if (sigFigures === 0) {
+    return data;
+  }
+
+  const numberRegex =
+    /[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/g;
+
+  if (typeof data === "string") {
+    return data.replace(numberRegex, match => {
+      return formatNumber(match, sigFigures);
+    });
+  }
+
+  if (Array.isArray(data)) {
+    return data.map(item => convertNumbers(item, sigFigures));
+  }
+
+  return data;
+}
+
+
+
+
+async function processDynamicQuestion({
+  question,
+  studentId,
+}) {
+
+  const sigFigures = question?.sigFigures ?? 0;
+
+  const isMultipleChoice =
+    isMultipleChoiceQuestion(question);
+
+  const isFillInBlank =
+    isFillInBlankQuestion(question);
+
+  const distractorCount =
+    question.distractorCount ?? 3;
+
+  const numberOfVariableSets =
+    isMultipleChoice
+      ? distractorCount + 1
+      : 1;
+
+  const variableSets = generateVariableSets(
+    question,
+    numberOfVariableSets
+  );
+
+  const variables = variableSets[0];
+
+  const brackets = parseBrackets(
+    question.content
+  );
+
+  const resolutions = resolveAll(brackets);
+
+  const resolvedContent = renderContent(
+    question.content,
+    brackets,
+    variables
+  );
+
+  if (isFillInBlank) {
+//	JUMP
+    const originalAnswers =
+      question?.dynFiBAnswers?.data;
+    const finalizedAnswers = finalizeAnswers(
+      originalAnswers,
+      resolutions,
+      variables
+    );
+
+    const answerGroups =
+      Array.isArray(finalizedAnswers)
+        ? finalizedAnswers
+        : [[String(finalizedAnswers)]];
+
+    const numerics = convertNumbers(answerGroups, sigFigures);
+    const cleanedAnswers =
+      cleanDynamicAnswerGroups(numerics);
+    const choices =
+      normalizeForChecking(cleanedAnswers);
+    return {
+      ...question,
+      content: resolvedContent,
+      choices,
+    };
+  }
+
+  if (isMultipleChoice) {
+    const correctValue = convertNumbers(evaluateAnswer(
+      question.answerExpression,
+      resolutions,
+      variables
+    ), sigFigures);
+
+    const safeCorrectValue = isNanLike(correctValue)
+      ? question.answerExpression
+      : correctValue;
+
+    const distractors = generateDistractors(
+      safeCorrectValue,
+      resolutions,
+      brackets,
+      question.answerExpression,
+      distractorCount,
+      variableSets
+    );
+
+    const dynamicChoices = buildDynamicChoices(
+      safeCorrectValue,
+      distractors
+    );
+
+    const cleanedChoices =
+      cleanDynamicChoices(convertNumbers(dynamicChoices, sigFigures));
+
+    await prisma.questionResolution.upsert({
+      where: {
+        studentId_questionId: {
+          studentId,
+          questionId: question.id,
+        },
+      },
+      update: {
+        resolvedContent,
+        choicesJson: JSON.stringify(
+          cleanedChoices
+        ),
+        createdAt: new Date(),
+      },
+      create: {
+        studentId,
+        questionId: question.id,
+        resolvedContent,
+        choicesJson: JSON.stringify(
+          cleanedChoices
+        ),
+      },
+    });
+
+    return {
+      ...question,
+      content: resolvedContent,
+      choices: cleanedChoices.map(
+        ({ isCorrect, ...choice }) => choice
+      ),
+    };
+  }
+
+  return {
+    ...question,
+    content: resolvedContent,
+    choices: question.choices.map(
+      ({ isCorrect, ...choice }) => choice
+    ),
+  };
+}
+
+async function processQuestion({
+  question,
+  studentId,
+}) {
+  if (!isDynamicQuestion(question)) {
+    return {
+      ...question,
+      choices: question.choices.map(
+        ({ isCorrect, ...choice }) => choice
+      ),
+    };
+  }
+
+  return processDynamicQuestion({
+    question,
+    studentId,
+  });
+}
 
 async function getStudentSectionQuestions(req, res) {
+  try {
+    const { sectionId } = req.params;
+    const studentId = req.user.sub;
+
+    const section = await prisma.section.findUnique({
+      where: {
+        id: sectionId,
+      },
+    });
+
+    if (!section) {
+      return res.status(404).json({
+        error: 'Section not found',
+      });
+    }
+
+    const chapter = await prisma.chapter.findUnique({
+      where: {
+        id: section.chapterId,
+      },
+    });
+
+    if (!chapter) {
+      return res.status(404).json({
+        error: 'Chapter not found',
+      });
+    }
+
+    const enrollments =
+      await prisma.studentEnrollment.findMany({
+        where: {
+          studentId,
+        },
+      });
+
+    const courseClassIds = enrollments.map(
+      enrollment => enrollment.courseClassId
+    );
+
+    const matchingCourseClasses =
+      await prisma.courseClass.findMany({
+        where: {
+          id: {
+            in: courseClassIds,
+          },
+          courseId: chapter.courseId,
+        },
+      });
+
+    if (matchingCourseClasses.length > 1) {
+      return res.status(403).json({
+        error: 'Class Search error',
+      });
+    }
+
+    const enrollment = matchingCourseClasses[0];
+
+    if (!enrollment) {
+      return res.status(403).json({
+        error: 'Not enrolled in this course',
+      });
+    }
+
+    const allQuestions =
+      await prisma.question.findMany({
+        where: {
+          id: {
+            in: section.questionIds,
+          },
+        },
+        include: {
+          choices: true,
+          tags: true,
+        },
+      });
+
+    const questionsPerTag = parseJsonValue(
+      section.questionsPerTag,
+      {}
+    );
+
+    let questions;
+
+    if (
+      questionsPerTag &&
+      typeof questionsPerTag === 'object' &&
+      !Array.isArray(questionsPerTag) &&
+      Object.keys(questionsPerTag).length > 0
+    ) {
+      questions = selectQuestionsByTag(
+        allQuestions,
+        questionsPerTag
+      );
+    } else {
+      questions = shuffle(allQuestions);
+    }
+
+    const processedQuestions =
+      await Promise.all(
+        questions.map(question =>
+          processQuestion({
+            question,
+            studentId,
+          })
+        )
+      );
+
+    let questionNumber = Number(
+      section.questionNumber ?? 0
+    );
+
+    if (
+      !Number.isFinite(questionNumber) ||
+      questionNumber <= 0 ||
+      questionNumber >= processedQuestions.length
+    ) {
+      return res.json(
+        shuffle(processedQuestions)
+      );
+    }
+
+    questionNumber = Math.floor(questionNumber);
+
+    const shuffledQuestions =
+      shuffle(processedQuestions);
+
+    const result = shuffledQuestions.slice(
+      0,
+      questionNumber
+    );
+
+    while (
+      result.length < questionNumber &&
+      processedQuestions.length > 0
+    ) {
+      result.push(
+        processedQuestions[
+          result.length %
+            processedQuestions.length
+        ]
+      );
+    }
+
+    return res.json(result);
+  } catch (error) {
+    console.error(
+      'Error getting student section questions:',
+      error
+    );
+
+    return res.status(500).json({
+      error: 'Failed to get section questions',
+    });
+  }
+}
+
+
+
+
+
+
+/*async function getStudentSectionQuestions(req, res) {
   const { sectionId } = req.params;
   const studentId = req.user.sub;
 
@@ -278,7 +1190,7 @@ async function getStudentSectionQuestions(req, res) {
    }
    res.json(qs);
   }
-}
+}*/
 
 async function getStudentCourseChapters(req, res) {
   const { courseId } = req.params;

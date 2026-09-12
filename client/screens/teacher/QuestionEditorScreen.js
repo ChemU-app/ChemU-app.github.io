@@ -752,6 +752,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
   const [answerExpression, setAnswerExpression] = useState('');
   const [answerUnit, setAnswerUnit] = useState('');
   const [distractorCount, setDistractorCount] = useState('');
+  const [sigFigures, setSigFigures] = useState("0");
 
   // Tags
   const [availableTags, setAvailableTags] = useState([]);
@@ -821,6 +822,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
           setAnswerExpression(q.answerExpression ?? '');
           setAnswerUnit(q.answerUnit ?? '');
           setDistractorCount(q.distractorCount != null ? String(q.distractorCount) : '');
+	  setSigFigures(q.sigFigures != null ? String(q.sigFigures) : "0");
         }
       })
       .catch(() => {});
@@ -899,7 +901,8 @@ export default function QuestionEditorScreen({ navigation, route }) {
 	variables: vars,
       };
       if (type === 'DYNAMIC') {
-        body.questionType = (questionType == "MULTIPLE_CHOICE")?"M":"F";;
+        body.questionType = (questionType == "MULTIPLE_CHOICE")?"M":"F";
+	body.sigFigures = String(sigFigures);
         {
 	 let i = 0;
 	 let fibAnswers = []
@@ -1001,6 +1004,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
   const VAR_TYPES=[
    {vType:'Element', desc: "Random element using atomic number for range", iType: 'range'},
    {vType:'Number', desc: "Random floating-point number", iType: 'range'},
+   {vType:'Compound', desc: "Random Compound between 1 and 14", iType: 'range'}
   ];
 
   return (
@@ -1209,6 +1213,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
                 />
               </View>
 	      {questionType === 'MULTIPLE_CHOICE' && (
+	      <>
                <View style={{ flex: 1 }}>
                  <FieldLabel label="DISTRACTORS" hint="default 3" />
                  <AccentInput
@@ -1219,8 +1224,21 @@ export default function QuestionEditorScreen({ navigation, route }) {
                    keyboardType="numeric"
                  />
                </View>
+               <View style={{ flex: 1 }}>
+                 <FieldLabel label="SIGNIFICANT FIGURES" hint="default full" />
+                 <AccentInput
+                   accent="purple"
+                   value={sigFigures}
+                   onChangeText={setSigFigures}
+                   placeholder="0"
+                   keyboardType="numeric"
+                 />
+               </View>
+
+
+	       </>
 	      )}
-	      {questionType === 'FILL_IN_BLANK' && (
+	      {questionType === 'FILL_IN_BLANK' && (<>
                <View style={{ flex: 1 }}>
                  <FieldLabel label="ANSWERS" hint="default 1" />
                  <AccentInput
@@ -1241,6 +1259,19 @@ export default function QuestionEditorScreen({ navigation, route }) {
                    keyboardType="numeric"
                  />
                </View>
+               <View style={{ flex: 1 }}>
+                 <FieldLabel label="SIGNIFICANT FIGURES" hint="default full" />
+                 <AccentInput
+                   accent="purple"
+                   value={sigFigures}
+                   onChangeText={setSigFigures}
+                   placeholder="0"
+                   keyboardType="numeric"
+                 />
+               </View>
+
+
+	       </>
 	      )}
 
 

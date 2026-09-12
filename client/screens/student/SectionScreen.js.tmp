@@ -1,0 +1,1192 @@
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+} from "react";
+
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  StyleSheet,
+  Pressable,
+  ActivityIndicator,
+  Image,
+  Modal,
+  Platform,
+} from "react-native";
+
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { LinearGradient } from "expo-linear-gradient";
+
+import { useAuth } from "../../context/AuthContext";
+import { api } from "../../lib/api";
+
+import {
+  ScreenSurface,
+  ShadowButton,
+  ProgressBar,
+} from "../../components/base";
+
+import QuestionCard from "../../components/QuestionCard";
+import AnswerOption from "../../components/AnswerOption";
+import FeedbackBar from "../../components/FeedbackBar";
+import { MathTextInput } from "../../components/MathInput";
+import PeriodicTableOverlay from "../../components/PeriodicTableOverlay";
+
+import {
+  colors,
+  typeScale,
+  screenPadding,
+  radius,
+} from "../../theme";
+
+import Ionicons from "@react-native-vector-icons/ionicons";
+
+import {
+  getSourceByName,
+  getDescByName,
+} from "../../assets/fixedAssets/index";
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Template syntax card
+// ─────────────────────────────────────────────────────────────────────────────
+
+const INPUT_REFS = [
+  {
+    code: "^",
+    desc: "switch to exponent mode (input twice to input a caret)",
+  },
+  {
+    code: "_",
+    desc: "switch to subscript mode (input twice to input an underscore)",
+  },
+  {
+    code: " ",
+    desc: "switch to normal input mode (this is the spacebar/space button)",
+  },
+];
+
+function CodeToken({ text }) {
+  return (
+    <View style={styles.codeToken}>
+      <Text style={styles.codeTokenText}>{text}</Text>
+    </View>
+  );
+}
+
+function SyntaxRow({ code, desc }) {
+  return (
+    <View style={styles.syntaxRow}>
+      <CodeToken text={code} />
+      {desc ? (
+        <Text style={styles.syntaxDesc}>{desc}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+function FormatSyntaxCard() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <View style={styles.syntaxCard}>
+      <Pressable
+        onPress={() => setOpen((value) => !value)}
+        style={styles.syntaxHeader}
+      >
+        <Text style={styles.syntaxTitle}>INPUT SYNTAX</Text>
+
+        <Ionicons
+          name={open ? "chevron-up" : "chevron-down"}
+          size={14}
+          color={colors.purple600}
+        />
+      </Pressable>
+
+      {open && (
+        <View style={styles.syntaxBody}>
+          {INPUT_REFS.map((item, index) => (
+            <SyntaxRow key={index} {...item} />
+          ))}
+
+          <Text style={styles.syntaxSubHead}>
+            WHEN IN DOUBT HIT THE SPACEBAR
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Question helpers
+// ─────────────────────────────────────────────────────────────────────────────
+
+function isDynamicMultipleChoice(question) {
+  return (
+    question?.type === "DYNAMIC" &&
+    question?.questionType === "M"
+  );
+}
+
+function isDynamicFillInBlank(question) {
+  return (
+    question?.type === "DYNAMIC" &&
+    question?.questionType === "F"
+  );
+}
+
+function isRegularFillInBlank(question) {
+  return question?.type === "FILL_IN_BLANK";
+}
+
+function isFillInBlank(question) {
+  return (
+    isRegularFillInBlank(question) ||
+    isDynamicFillInBlank(question)
+  );
+}
+
+function isMultipleChoice(question) {
+  return (
+    question?.type === "MULTIPLE_CHOICE" ||
+    isDynamicMultipleChoice(question)
+  );
+}
+
+/*
+ * Dynamic multiple-choice choices may contain duplicate IDs in some cases.
+ * Dynamic FIB choices must not be deduplicated because every returned choice
+ * represents an answer value that is sent back to the server.
+ */
+function getMultipleChoiceOptions(question) {
+  if (!isMultipleChoice(question)) {
+    return [];
+  }
+
+  const choices = Array.isArray(question?.choices)
+    ? question.choices
+    : [];
+
+  const seen = new Set();
+
+  return choices.filter((choice, index) => {
+    const key =
+      choice?.id ??
+      `${choice?.content ?? ""}-${index}`;
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function getFillInBlankCount(question) {
+  if (!isFillInBlank(question)) {
+    return 0;
+  }
+
+  /*
+   * The server returns dynamic FIB possible answers through choices.
+   * Therefore, the number of text inputs is the number of returned choices.
+   */
+  return Array.isArray(question?.choices)
+    ? question.choices.length
+    : 0;
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Section screen
+// ─────────────────────────────────────────────────────────────────────────────
+
+export default function SectionScreen({ navigation, route }) {
+  const insets = useSafeAreaInsets();
+  const { token } = useAuth();
+
+  const {
+    sectionId,
+    courseId,
+  } = route.params;
+
+  const [questions, setQuestions] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const [selected, setSelected] = useState(null);
+  const [fibInputs, setFibInputs] = useState([]);
+
+  const [checked, setChecked] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const [correctChoiceIds, setCorrectChoiceIds] = useState([]);
+  const [correctAnswers, setCorrectAnswers] = useState([]);
+  const [blankResults, setBlankResults] = useState([]);
+
+  const [explanation, setExplanation] = useState(null);
+  const [ptOpen, setPtOpen] = useState(false);
+
+  const [xpGained, setXpGained] = useState(0);
+  const [done, setDone] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const [sessionId, setSessionId] = useState(null);
+  const sessionRef = useRef(null);
+
+  const [isEnlarged, setEnlarged] = useState(false);
+
+  /*
+   * Load the questions returned by the server.
+   *
+   * The expected response is an array:
+   *
+   * [
+   *   {
+   *     id,
+   *     type,
+   *     questionType,
+   *     content,
+   *     choices
+   *   }
+   * ]
+   */
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadQuestions() {
+      try {
+        const response = await api.get(
+          `/sections/${sectionId}/questions`,
+          token
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        /*
+         * Normally the server returns the array directly.
+         * The second branch also supports { questions: [...] }.
+         */
+        const receivedQuestions = Array.isArray(response)
+          ? response
+          : Array.isArray(response?.questions)
+            ? response.questions
+            : [];
+
+        setQuestions(receivedQuestions);
+      } catch (error) {
+        console.warn(
+          "SectionScreen load error:",
+          error?.message
+        );
+
+        if (mounted) {
+          setQuestions([]);
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadQuestions();
+
+    return () => {
+      mounted = false;
+    };
+  }, [sectionId, token]);
+
+  /*
+   * Start the study session.
+   */
+  useEffect(() => {
+    if (!courseId) {
+      return undefined;
+    }
+
+    let mounted = true;
+
+    api
+      .post("/study/start", { courseId }, token)
+      .then((response) => {
+        if (!mounted) {
+          return;
+        }
+
+        setSessionId(response.sessionId);
+        sessionRef.current = response.sessionId;
+      })
+      .catch((error) => {
+        console.warn(
+          "Session start error:",
+          error?.message
+        );
+      });
+
+    return () => {
+      mounted = false;
+
+      if (sessionRef.current) {
+        api
+          .post(
+            "/study/end",
+            {
+              sessionId: sessionRef.current,
+            },
+            token
+          )
+          .catch(() => {});
+
+        sessionRef.current = null;
+      }
+    };
+  }, [courseId, token]);
+
+  const question = questions[currentIndex];
+
+  const isFib = isFillInBlank(question);
+  const isMc = isMultipleChoice(question);
+  const isDynamicFib = isDynamicFillInBlank(question);
+
+  const mcChoices = useMemo(() => {
+    return getMultipleChoiceOptions(question);
+  }, [question]);
+
+  const blankCount = useMemo(() => {
+    return getFillInBlankCount(question);
+  }, [question]);
+
+  const correctChoice = useMemo(() => {
+    if (!isMc) {
+      return null;
+    }
+
+    return mcChoices.find((choice) => {
+      return correctChoiceIds.includes(choice.id);
+    });
+  }, [isMc, mcChoices, correctChoiceIds]);
+
+  const xp = question
+    ? Number(question.difficulty ?? 1) * 10
+    : 0;
+
+  const progress =
+    questions.length > 0
+      ? currentIndex / questions.length
+      : 0;
+
+  const fixedImage = question?.fixedImage ?? "";
+
+  /*
+   * The answer button is enabled only when all FIB inputs have content,
+   * or when an MC option has been selected.
+   */
+  const canCheck = useMemo(() => {
+    if (!question || checked) {
+      return false;
+    }
+
+    if (isFib) {
+      return (
+        blankCount > 0 &&
+        fibInputs.length === blankCount &&
+        fibInputs.every((value) => {
+          return typeof value === "string" &&
+            value.trim().length > 0;
+        })
+      );
+    }
+
+    if (isMc) {
+      return selected !== null;
+    }
+
+    return false;
+  }, [
+    question,
+    checked,
+    isFib,
+    isMc,
+    blankCount,
+    fibInputs,
+    selected,
+  ]);
+
+  function optionState(choice) {
+    if (!checked || !result) {
+      return selected?.id === choice.id
+        ? "selected"
+        : "idle";
+    }
+
+    if (correctChoiceIds.includes(choice.id)) {
+      return "correct";
+    }
+
+    if (selected?.id === choice.id) {
+      return "wrong";
+    }
+
+    return "muted";
+  }
+
+  function updateFibInput(index, value) {
+    setFibInputs((previous) => {
+      const next = [...previous];
+      next[index] = value;
+      return next;
+    });
+  }
+
+  async function handleCheck() {
+    if (!question || checked || !canCheck) {
+      return;
+    }
+
+    setChecked(true);
+
+    try {
+      let body;
+
+      if (isFib) {
+        body = {
+          sessionId,
+          fibAnswers: fibInputs.map((value) => {
+            return value.trim();
+          }),
+        };
+
+        /*
+         * Dynamic FIB answers are generated by the server and are not
+         * stored permanently. Send the generated choices back so the
+         * server can check them.
+         */
+        if (isDynamicFib) {
+          body.choices = question.choices ?? [];
+        }
+      } else {
+        body = {
+          sessionId,
+          choiceIds: selected?.id
+            ? [selected.id]
+            : [],
+        };
+      }
+
+      const response = await api.post(
+        `/questions/${question.id}/attempt`,
+        body,
+        token
+      );
+
+      setResult(
+        response?.isCorrect
+          ? "correct"
+          : "wrong"
+      );
+
+      setCorrectChoiceIds(
+        response?.correctChoiceIds ?? []
+      );
+
+      setCorrectAnswers(
+        response?.correctAnswers ?? []
+      );
+
+      setBlankResults(
+        response?.blankResults ?? []
+      );
+
+      setExplanation(
+        response?.explanation ?? null
+      );
+    } catch (error) {
+      console.warn(
+        "Attempt submit error:",
+        error?.message
+      );
+
+      setResult("wrong");
+      setExplanation(
+        "There was a problem checking this answer."
+      );
+    }
+  }
+
+  function resetQuestionState() {
+    setSelected(null);
+    setFibInputs([]);
+    setChecked(false);
+    setResult(null);
+    setCorrectChoiceIds([]);
+    setCorrectAnswers([]);
+    setBlankResults([]);
+    setExplanation(null);
+  }
+
+  function handleContinue() {
+    if (currentIndex < questions.length - 1) {
+      setCurrentIndex((index) => index + 1);
+      resetQuestionState();
+    } else {
+      completeSection();
+    }
+  }
+
+  async function completeSection() {
+    if (sessionRef.current) {
+      api
+        .post(
+          "/study/end",
+          {
+            sessionId: sessionRef.current,
+          },
+          token
+        )
+        .catch(() => {});
+
+      sessionRef.current = null;
+      setSessionId(null);
+    }
+
+    try {
+      const response = await api.post(
+        `/sections/${sectionId}/complete`,
+        {},
+        token
+      );
+
+      setXpGained(response?.xpEarned ?? 0);
+    } catch (error) {
+      console.warn(
+        "Complete section error:",
+        error?.message
+      );
+    } finally {
+      setDone(true);
+    }
+  }
+
+  function getFeedbackMessage() {
+    if (result === "correct") {
+      return `+${xp} XP${
+        explanation
+          ? ` — ${explanation}`
+          : ""
+      }`;
+    }
+
+    if (isFib && correctAnswers.length > 0) {
+      return [
+        `Correct: ${correctAnswers.join(" / ")}`,
+        explanation
+          ? `Explanation: ${explanation}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    if (correctChoice) {
+      return [
+        `Correct answer: ${correctChoice.content}`,
+        explanation
+          ? `Explanation: ${explanation}`
+          : null,
+      ]
+        .filter(Boolean)
+        .join("\n");
+    }
+
+    return explanation ?? "";
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Loading
+  // ───────────────────────────────────────────────────────────────────────────
+
+  if (loading) {
+    return (
+      <ScreenSurface
+        style={{
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+      >
+        <ActivityIndicator
+          color={colors.purple400}
+          size="large"
+        />
+      </ScreenSurface>
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Completed
+  // ───────────────────────────────────────────────────────────────────────────
+
+  if (done) {
+    return (
+      <ScreenSurface>
+        <View style={styles.centerContainer}>
+          <Text style={styles.doneEmoji}>🎉</Text>
+
+          <Text style={styles.doneTitle}>
+            Section complete!
+          </Text>
+
+          <Text style={styles.doneXp}>
+            +{xpGained} XP earned
+          </Text>
+
+          <ShadowButton
+            label="Back to trail"
+            variant="primary"
+            onPress={() => navigation.goBack()}
+            style={{
+              marginTop: 24,
+              minWidth: 200,
+            }}
+          />
+        </View>
+      </ScreenSurface>
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Empty section
+  // ───────────────────────────────────────────────────────────────────────────
+
+  if (!question) {
+    return (
+      <ScreenSurface>
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyText}>
+            No questions in this section.
+          </Text>
+
+          <ShadowButton
+            label="Go back"
+            variant="ghost"
+            onPress={() => navigation.goBack()}
+          />
+        </View>
+      </ScreenSurface>
+    );
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Question
+  // ───────────────────────────────────────────────────────────────────────────
+
+  return (
+    <ScreenSurface>
+      <StatusBar style="dark" />
+
+      <View
+        style={[
+          styles.topBar,
+          {
+            paddingTop: insets.top + 10,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => navigation.goBack()}
+          style={styles.exitBtn}
+        >
+          <Ionicons
+            name="close"
+            size={18}
+            color={colors.neutral900}
+          />
+        </Pressable>
+
+        <ProgressBar
+          progress={progress}
+          gradientColors={[
+            colors.purple400,
+            colors.gold400,
+          ]}
+          height={12}
+          style={styles.progressBar}
+        />
+      </View>
+
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          result && {
+            paddingBottom: 180,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.metaRow}>
+          <Text style={styles.metaLabel}>
+            QUESTION {currentIndex + 1} OF {questions.length}
+          </Text>
+
+          <Text style={styles.metaDot}>·</Text>
+
+          <View style={styles.xpPill}>
+            <Ionicons
+              name="flash"
+              size={10}
+              color={colors.gold600}
+            />
+
+            <Text style={styles.xpText}>
+              +{xp} XP
+            </Text>
+          </View>
+        </View>
+
+        <QuestionCard
+          questionText={question.content}
+          footer={
+            <Pressable
+              onPress={() => setPtOpen(true)}
+              style={styles.ptBtnContainer}
+            >
+              <LinearGradient
+                colors={[
+                  colors.blue400,
+                  colors.purple600,
+                ]}
+                start={{
+                  x: 0,
+                  y: 0,
+                }}
+                end={{
+                  x: 1,
+                  y: 1,
+                }}
+                style={styles.ptBtn}
+              >
+                <Ionicons
+                  name="grid"
+                  size={15}
+                  color="#FFF"
+                />
+
+                <Text style={styles.ptBtnText}>
+                  Open periodic table
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          }
+        />
+
+        {fixedImage !== "" ? (
+          <View style={styles.imgCol}>
+            <Pressable
+              onPress={() => setEnlarged(true)}
+            >
+              <Image
+                style={styles.img}
+                source={getSourceByName(fixedImage)}
+              />
+            </Pressable>
+
+            <Modal
+              visible={isEnlarged}
+              onRequestClose={() => setEnlarged(false)}
+            >
+              <StatusBar style="dark" />
+
+              <View
+                style={[
+                  styles.topBar,
+                  {
+                    paddingTop: insets.top + 10,
+                  },
+                ]}
+              >
+                <Pressable
+                  onPress={() => setEnlarged(false)}
+                  style={styles.exitBtn}
+                >
+                  <Ionicons
+                    name="close"
+                    size={18}
+                    color={colors.neutral900}
+                  />
+                </Pressable>
+              </View>
+
+              <ScrollView>
+                <View style={styles.imgCol}>
+                  <Image
+                    style={styles.fullImg}
+                    source={getSourceByName(fixedImage)}
+                  />
+
+                  <Text>
+                    {getDescByName(fixedImage)}
+                  </Text>
+                </View>
+              </ScrollView>
+            </Modal>
+
+            <Text>PRESS TO ENLARGE</Text>
+          </View>
+        ) : null}
+
+        {isFib ? (
+          <>
+            <FormatSyntaxCard />
+
+            <View style={styles.fibInputList}>
+              {Array.from(
+                { length: blankCount },
+                (_, index) => {
+                  const blankResult =
+                    blankResults[index];
+
+                  return (
+                    <View
+                      key={`blank-${index}`}
+                      style={styles.fibInputRow}
+                    >
+                      <View style={styles.blankPill}>
+                        <Text
+                          style={styles.blankPillText}
+                        >
+                          BLANK {index + 1}
+                        </Text>
+                      </View>
+
+                      <MathTextInput
+                        style={[
+                          styles.fibInput,
+                          checked &&
+                            blankResult === true &&
+                            styles.fibInputCorrect,
+                          checked &&
+                            blankResult === false &&
+                            styles.fibInputWrong,
+                        ]}
+                        value={fibInputs[index] ?? ""}
+                        onChangeText={(value) => {
+                          updateFibInput(
+                            index,
+                            value
+                          );
+                        }}
+                        placeholder={`Answer ${index + 1}`}
+                        editable={!checked}
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        placeholderTextColor={
+                          colors.neutral400
+                        }
+                      />
+                    </View>
+                  );
+                }
+              )}
+            </View>
+          </>
+        ) : (
+          <View style={styles.optionsList}>
+            {mcChoices.map((choice, index) => (
+              <AnswerOption
+                key={
+                  choice.id ??
+                  `${choice.content}-${index}`
+                }
+                label={String.fromCharCode(65 + index)}
+                text={choice.content}
+                state={optionState(choice)}
+                onPress={() => {
+                  if (!checked) {
+                    setSelected(choice);
+                  }
+                }}
+                disabled={checked}
+              />
+            ))}
+          </View>
+        )}
+
+        {!checked ? (
+          <ShadowButton
+            label="Check answer"
+            variant="primary"
+            onPress={handleCheck}
+            disabled={!canCheck}
+            style={styles.checkBtn}
+          />
+        ) : null}
+      </ScrollView>
+
+      <FeedbackBar
+        result={result}
+        message={getFeedbackMessage()}
+        onContinue={handleContinue}
+      />
+
+      <PeriodicTableOverlay
+        open={ptOpen}
+        onClose={() => setPtOpen(false)}
+      />
+    </ScreenSurface>
+  );
+}
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Keep your existing styles object below this line.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const styles = StyleSheet.create({
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+
+  doneEmoji: {
+    fontSize: 56,
+    marginBottom: 12,
+  },
+
+  doneTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: colors.neutral900,
+  },
+
+  doneXp: {
+    marginTop: 8,
+    fontSize: 18,
+    color: colors.gold600,
+    fontWeight: "600",
+  },
+
+  emptyText: {
+    marginBottom: 20,
+    fontSize: 16,
+    color: colors.neutral700,
+    textAlign: "center",
+  },
+
+  topBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingBottom: 10,
+  },
+
+  exitBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.neutral100,
+    marginRight: 12,
+  },
+
+  progressBar: {
+    flex: 1,
+  },
+
+  scroll: {
+    paddingHorizontal: screenPadding,
+    paddingBottom: 40,
+  },
+
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 14,
+  },
+
+  metaLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.neutral600,
+  },
+
+  metaDot: {
+    marginHorizontal: 8,
+    color: colors.neutral400,
+  },
+
+  xpPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: colors.gold100,
+  },
+
+  xpText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.gold600,
+  },
+
+  optionsList: {
+    marginTop: 20,
+    gap: 10,
+  },
+
+  fibInputList: {
+    marginTop: 20,
+    gap: 14,
+  },
+
+  fibInputRow: {
+    gap: 8,
+  },
+
+  blankPill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 9,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: colors.purple100,
+  },
+
+  blankPillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.purple600,
+  },
+
+  fibInput: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.neutral300,
+    borderRadius: radius?.medium ?? 10,
+    paddingHorizontal: 12,
+    color: colors.neutral900,
+    backgroundColor: "#FFF",
+  },
+
+  fibInputCorrect: {
+    borderColor: colors.green500,
+    backgroundColor: colors.green100,
+  },
+
+  fibInputWrong: {
+    borderColor: colors.red500,
+    backgroundColor: colors.red100,
+  },
+
+  checkBtn: {
+    marginTop: 24,
+  },
+
+  ptBtnContainer: {
+    marginTop: 8,
+  },
+
+  ptBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+  },
+
+  ptBtnText: {
+    color: "#FFF",
+    fontWeight: "700",
+  },
+
+  syntaxCard: {
+    marginTop: 18,
+    borderRadius: 12,
+    backgroundColor: colors.neutral100,
+    overflow: "hidden",
+  },
+
+  syntaxHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 12,
+  },
+
+  syntaxTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: colors.purple600,
+  },
+
+  syntaxBody: {
+    padding: 12,
+    paddingTop: 0,
+    gap: 8,
+  },
+
+  syntaxRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  codeToken: {
+    minWidth: 28,
+    minHeight: 28,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 6,
+    backgroundColor: "#FFF",
+  },
+
+  codeTokenText: {
+    fontWeight: "700",
+    color: colors.neutral900,
+  },
+
+  syntaxDesc: {
+    flex: 1,
+    color: colors.neutral700,
+    fontSize: 12,
+  },
+
+  syntaxSubHead: {
+    marginTop: 8,
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.neutral600,
+  },
+
+  imgCol: {
+    alignItems: "center",
+    marginTop: 16,
+  },
+
+  img: {
+    width: 180,
+    height: 180,
+    resizeMode: "contain",
+  },
+
+  fullImg: {
+    width: "100%",
+    height: 360,
+    resizeMode: "contain",
+  },
+});
+

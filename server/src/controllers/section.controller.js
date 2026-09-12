@@ -253,7 +253,158 @@ async function removeQuestionFromSection(req, res) {
   res.json({ message: 'Question removed from section' });
 }
 
-async function updateSection(req,res){
+
+async function updateSection(req, res) {
+  try {
+    const section = await prisma.section.findUnique({
+      where: {
+        id: req.params.sectionId,
+      },
+    });
+
+    if (!section) {
+      return res.status(404).json({
+        error: "Section not found",
+      });
+    }
+
+    const chapter = await prisma.chapter.findUnique({
+      where: {
+        id: section.chapterId,
+      },
+    });
+
+    if (!chapter) {
+      return res.status(404).json({
+        error: "Chapter not found",
+      });
+    }
+
+    const course = await prisma.course.findUnique({
+      where: {
+        id: chapter.courseId,
+      },
+    });
+
+    if (!course) {
+      return res.status(404).json({
+        error: "Course not found",
+      });
+    }
+
+    if (req.user.sub !== course.teacherId) {
+      return res.status(403).json({
+        error: "You do not own the course this section is in",
+      });
+    }
+
+    const questionsPerTag = req.body?.questionsPerTag;
+
+    if (
+      questionsPerTag !== undefined &&
+      (
+        questionsPerTag === null ||
+        typeof questionsPerTag !== "object" ||
+        Array.isArray(questionsPerTag)
+      )
+    ) {
+      return res.status(400).json({
+        error: "questionsPerTag must be an object",
+      });
+    }
+
+    if (questionsPerTag !== undefined) {
+      const questionIds = Array.isArray(section.questionIds)
+        ? section.questionIds
+        : [];
+
+      const questions = await prisma.question.findMany({
+        where: {
+          id: {
+            in: questionIds,
+          },
+        },
+        include: {
+          tags: true,
+        },
+      });
+
+      const tagMaximums = {};
+
+      for (const question of questions) {
+        const tagNames = new Set(
+          (question.tags || [])
+            .map((tag) => tag?.name)
+            .filter(Boolean)
+        );
+
+        for (const tagName of tagNames) {
+          tagMaximums[tagName] = (tagMaximums[tagName] || 0) + 1;
+        }
+      }
+
+      for (const [tagName, rawValue] of Object.entries(
+        questionsPerTag
+      )) {
+        const value =
+          typeof rawValue === "string"
+            ? Number(rawValue)
+            : rawValue;
+
+        if (!Number.isInteger(value)) {
+          return res.status(400).json({
+            error: `The value for tag "${tagName}" must be a whole number`,
+          });
+        }
+
+        if (value < 0) {
+          return res.status(400).json({
+            error: `The value for tag "${tagName}" cannot be below 0`,
+          });
+        }
+
+        const maximum = tagMaximums[tagName] || 0;
+
+        if (value > maximum) {
+          return res.status(400).json({
+            error: `The value for tag "${tagName}" cannot be greater than ${maximum}`,
+          });
+        }
+      }
+    }
+
+    const updateData = {};
+
+    if (req.body?.questionNumber !== undefined) {
+      updateData.questionNumber = String(req.body.questionNumber);
+    }
+
+    if (questionsPerTag !== undefined) {
+      updateData.questionsPerTag = questionsPerTag;
+    }
+
+    await prisma.section.update({
+      where: {
+        id: req.params.sectionId,
+      },
+      data: updateData,
+    });
+
+    return res.json({
+      message: "Updated section",
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      error: "Unable to update section",
+    });
+  }
+}
+
+
+
+/*async function updateSection(req,res){
  const section = await prisma.section.findUnique({
   where: { id: req.params.sectionId },
  });
@@ -274,5 +425,5 @@ async function updateSection(req,res){
  });
  res.json({ message: 'updated section'});
 }
-
+*/
 module.exports = { completeSection, addQuestionToSection, removeQuestionFromSection, updateSection };

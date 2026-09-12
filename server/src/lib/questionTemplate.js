@@ -5,7 +5,17 @@ const compounds = require('./compounds');
 const BRACKET_RE = /\[([^\]]+)\]/g;
 
 const EL_PROPS = ['name', 'symbol', 'number', 'mass'];
-const COMPOUND_PROPS = ['name', 'formula', 'molarMass'];
+const COMPOUND_PROPS = [
+  'name',
+  'formula',
+  'displayFormula',
+  'molarMass',
+  'compoundType',
+  'stateAtRoomTemperature',
+  'elements',
+  'elementCount',
+  'atomCount',
+];
 const KNOWN_TYPES = ['el', 'num', 'compound', 'ref', 'expr', 'const'];
 
 const CONSTANTS = {
@@ -245,9 +255,12 @@ function renderContent(content, brackets, vars) {
     break;
    }
    case "Element":{
-    console.log(vars[item.refPosition]);
     out = out.replace(needle, String(vars[item.refPosition].elm[item.property]));
     break;
+   }
+   case "Compound":{
+	out = out.replace(needle, String(vars[item.refPosition].elm[item.property]));
+	break;
    }
    default:{
     out = out.replace(needle, "NaN");
@@ -372,12 +385,15 @@ function evaluateAnswer(expression, resolutions, vars) {
      break;
     }
     case "Number":{
-     val = r.num;
+     val = String(r.num)
      break;
     }
     case "Element":{
-     val = r.elm[prop];
+     val = String(r.elm[prop])
      break;
+    }
+    case "Compound":{
+     cal = String(r.com[prop])
     }
     }
     return val != null ? String(val) : 'NaN';
@@ -652,6 +668,10 @@ function validateTemplate(content, answerExpression, vars, type) {
     }
     case 'Element':{
      if(!elmProps.includes(b.property))return `${b.raw} is invalid, not a property of an Element`;
+     break;
+    }
+    case 'Compound':{
+     if(!COMPOUND_PROPS.includes(b.property))return `${b.raw} is invalid, not a property of an Compound`;
      break;
     }
     default:{

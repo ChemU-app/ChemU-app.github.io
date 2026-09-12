@@ -108,7 +108,7 @@ export default function SectionScreen({ navigation, route }) {
   }, [courseId, token]);
 
   const q = questions[currentIndex];
-
+  console.log(q);
   let isFib = q?.type === 'FILL_IN_BLANK';
   if(q?.type == "DYNAMIC") isFib = q?.questionType == "F";
   

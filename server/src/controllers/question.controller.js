@@ -131,7 +131,7 @@ async function getSectionQuestions(req, res) {
 
 async function createQuestion(req, res) {
   const teacherId = req.user.sub;
-  const { type, content, correctExplanation, incorrectExplanation, difficulty, variables, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, questionType, fibAnswers } = req.body;
+  const { type, content, correctExplanation, incorrectExplanation, difficulty, variables, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, questionType, fibAnswers, sigFigures } = req.body;
   const safeTagIds = Array.isArray(tagIds) ? tagIds : [];
   const errors = [];
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
@@ -142,6 +142,8 @@ async function createQuestion(req, res) {
   if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   if (type === 'DYNAMIC') {
+    if(!sigFigures) return res.status(401).json({error: "No Sig Figure Value"});
+    if(sigFigures < 0) return res.status(401).json({error: "Invalid Sig Figure Value"}); 
     if(!questionType) return res.status(400).json({error: "No Question Type"});
     if(!((questionType == "M") | (questionType == "F"))) return res.status(400).json({error: "Bad Question Type"});
     if(questionType == "M"){
@@ -186,6 +188,7 @@ async function createQuestion(req, res) {
 
     if(type == "DYNAMIC"){
      data.questionType = questionType;
+     data.sigFigures = sigFigures ?? "0";
      data.dynFiBAnswers = {data: fibAnswers};
     }
 
@@ -244,7 +247,7 @@ async function createQuestion(req, res) {
 
 async function updateQuestion(req, res) {
   const { questionId } = req.params;
-  const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, variables, questionType, fibAnswers} = req.body;
+  const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, variables, questionType, fibAnswers, sigFigures} = req.body;
   const errors = [];
   console.log(req.body);
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
@@ -255,6 +258,8 @@ async function updateQuestion(req, res) {
   if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   if (type === 'DYNAMIC') {
+    if(!sigFigures) return res.status(401).json({error: "No Sig Figure Value"});
+    if(sigFigures < 0) return res.status(401).json({error: "Invalid Sig Figure Value"});
     if(!questionType) return res.status(401).json({error: "No Question Type"});
     if(!((questionType == "M") | (questionType == "F"))) return res.status(402).json({error: "Bad Question Type"});
     if(questionType == "M"){
@@ -319,6 +324,7 @@ async function updateQuestion(req, res) {
       updateData.varTypes = varTypes;
       updateData.varMin = varMin;
       updateData.varMax = varMax;
+      updateData.sigFigures = sigFigures;
     } else {
       // Clear dynamic fields when changing type away from DYNAMIC
       updateData.answerExpression = null;

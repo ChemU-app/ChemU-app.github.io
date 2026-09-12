@@ -16,7 +16,7 @@ import { api } from '../../lib/api';
 import { doExport } from '../../lib/exportCsv';
 import { colors, radius } from '../../theme';
 import DynamicContent from '../../components/base/DynamicContent';
-
+import TagQuestionModal from '../../components/sectionQuestionModal';
 // ─── Sheet ─────────────────────────────────────────────────────────────────────
 
 function Sheet({ visible, onClose, title, children }) {
@@ -474,6 +474,7 @@ const optionCardStyle = StyleSheet.create({
 
 function SectionCard({token, section, orderIndex, expanded, onToggle, questions, loadingQ, stats, totalEnrolled, sectionMode, onAddFromBank, onExport, exportingThis, onCompletedPress }) {
   const qCount = section._count?.questions ?? 0;
+  console.log(section);
   const chevronAnim = useRef(new Animated.Value(0)).current;
   console.log(section);
   useEffect(() => {
@@ -511,46 +512,12 @@ function SectionCard({token, section, orderIndex, expanded, onToggle, questions,
 	  <Pressable onPress={()=>{setEditSec(true)}}>
 	   <Ionicons name="settings-outline" size="1.5rem"/>
 	  </Pressable>
-	  <Modal
-           transparent={false}
-	   animationType="slide"
+	  <TagQuestionModal
+	   section={section}
 	   visible={editSec}
-	   onRequestClose={()=>{setEditSec(false);}}>
-           <FlatList
-            data={Options}
-	    renderItem={({item})=>{
-	     console.log(item);
-             return(<OptionCardRow name={item.name} desc={item.desc} value={item.state} changeState={item.changeState} type={item.type} placeholder={item.placeholder}/>);
-	    }}
-	   />
-           <Pressable
-            style={optionCardStyle.optionCardRowSave}
-            onPress={()=>{setEditSec(false);}}
-           >
-            <Text style={optionCardStyle.optionCardRowSaveText}>Save</Text>
-           </Pressable>
-           <Pressable
-            style={optionCardStyle.optionCardRowSave}
-            onPress={()=>{
-	     const body = {
-              questionNumber: qiaState
-	     }
-	     api.patch(`/sections/${section.id}/update`, body, token);
-	     setEditSec(false);
-	    }}
-           >
-            <Text style={optionCardStyle.optionCardRowSaveText}>Delete Section</Text>
-           </Pressable>
-           <Pressable
-            style={optionCardStyle.optionCardRowSave}
-            onPress={()=>{setEditSec(false);}}
-           >
-            <Text style={optionCardStyle.optionCardRowSaveText}>Cancel</Text>
-           </Pressable>
-
-
-
-	  </Modal>
+	   onClose={()=>{setEditSec(false);}}
+	   token={token}
+	  />
           <View style={sc.qChip}>
             <Text style={sc.qChipText}>{qCount} Q</Text>
           </View>
