@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Pressable, View, Text, Animated, StyleSheet } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { colors, radius, typeScale } from '../theme';
 
 // state: 'idle' | 'selected' | 'correct' | 'wrong' | 'muted'

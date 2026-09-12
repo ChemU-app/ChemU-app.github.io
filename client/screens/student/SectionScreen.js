@@ -15,7 +15,7 @@ import FeedbackBar from '../../components/FeedbackBar';
 import { MathTextInput } from '../../components/MathInput';
 import PeriodicTableOverlay from '../../components/PeriodicTableOverlay';
 import { colors, typeScale, screenPadding, radius } from '../../theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { getSourceByName, getDescByName } from '../../assets/fixedAssets/index';
 
 

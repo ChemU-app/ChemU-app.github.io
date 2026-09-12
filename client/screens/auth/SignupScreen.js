@@ -9,7 +9,7 @@ import { alertLib } from '../../lib/alertLib';
 import { useAuth } from '../../context/AuthContext';
 import { ShadowButton, ScreenSurface } from '../../components/base';
 import { colors, typeScale, screenPadding, radius } from '../../theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons";
 
 export default function SignupScreen({ navigation }) {
   const insets = useSafeAreaInsets();

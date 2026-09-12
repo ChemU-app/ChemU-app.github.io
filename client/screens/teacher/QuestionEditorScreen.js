@@ -14,7 +14,7 @@ import { ScreenSurface, ShadowButton, SlotPickerSheet, SlotConfigOverlay, SlotTo
 import {VariableSelector} from '../../components/VariableSelector';
 import { parseDynamic } from '../../components/base/DynamicContent';
 import { colors, typeScale, screenPadding, radius } from '../../theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { FIXED_IMAGES } from "../../assets/fixedAssets/index";
 import { MathTextInput } from '../../components/MathInput';
 // ─── Field label ─────────────────────────────────────────────────────────────

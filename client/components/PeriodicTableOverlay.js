@@ -3,7 +3,7 @@ import {
   View, Text, Modal, Pressable, ScrollView, Animated, PanResponder, StyleSheet,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons";
 import { colors, radius } from '../theme';
 
 // ─── Element data ─────────────────────────────────────────────────────────────

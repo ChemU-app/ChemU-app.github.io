@@ -3,7 +3,7 @@ import {Text, Modal, Pressable, FlatList, View, StyleSheet,
 	ScrollView,
 } from 'react-native';
 import { colors, typeScale, screenPadding, radius } from '../theme';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from "@react-native-vector-icons/ionicons";
 
 function Segment({children}){
  return <View style={styles.segment}>
