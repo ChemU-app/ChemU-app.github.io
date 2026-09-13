@@ -15,7 +15,7 @@ const statsRoutes = require('./routes/stats.routes');
 const app = express();
 
 const corsOptions = {
-	origin: "https://chemu-app.github.io/"
+	origin: "https://chemu-app.github.io"
 };
 
 app.use(cors(corsOptions));
