@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "ChemU",
-    "slug": "chemu",
+    "slug": "chemu-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -41,8 +41,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "996320c1-f067-4316-a02e-2bd2c34a8b48"
+        "projectId": "52861659-3cf1-4a01-bbb2-321ae9dc7081"
       }
-    }
+    },
+    "owner": "intellitraining"
   }
 }
