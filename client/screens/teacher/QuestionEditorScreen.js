@@ -1095,7 +1095,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
           placeholder={
             type === 'MULTIPLE_CHOICE' ? 'e.g. What is the atomic number of Magnesium?'
             : type === 'FILL_IN_BLANK' ? 'Use ___ for blanks. e.g. The pH of pure water is ___.'
-            : 'e.g. How many protons are in [el(1,18).name]?'
+            : 'e.g. How many protons are in [1.name]?'
           }
           style={type === 'DYNAMIC' ? { fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' } : null}
         />
