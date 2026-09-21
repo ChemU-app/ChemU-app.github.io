@@ -12,7 +12,9 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../lib/api';
 import { colors, radius } from '../../theme';
 import DynamicContent from '../../components/base/DynamicContent';
-
+import {useQuestionBank} from "../../hooks/QuestionBank";
+import SearchBar from "../../components/SearchBar";
+import DeleteQuestionModal from "../../modals/DeleteQuestionModal";
 // ─── Sheet ─────────────────────────────────────────────────────────────────────
 
 function Sheet({ visible, onClose, title, children }) {
@@ -202,7 +204,6 @@ const fc = StyleSheet.create({
 function QuestionCard({ token, question, onPress, pickMode, selected, alreadyAdded }) {
   const usedIn = question.usedIn ?? 0;
   const tags = question.tags ?? [];
-  const [showDel, setDel] = useState(false);
   return (
     <Pressable
       onPress={alreadyAdded ? null : () => onPress(question)}
@@ -250,42 +251,13 @@ function QuestionCard({ token, question, onPress, pickMode, selected, alreadyAdd
           ))}
         </View>
       )}
-
-        <Pressable style={styl.str} onPress={()=>setDel(true)}>
-         <Ionicons name="trash-outline" size="16" ></Ionicons>
-        </Pressable>
-<Modal animationType='fade' transparent={false} visible={showDel} onRequestClose={()=>setDel(false)}>
-        <View style={styl.overlay}>
-          <View style={styl.card}>
-            <View style={styl.stack}>
-             <Text style={styles.title}>Remove From Question Bank?</Text>
-              <Text style={styl.idText}>{String(question.id)}</Text>
-              <Text style={styl.bodyText}>{question.content}</Text>
-            </View>
-            <Text style={styl.question}>Do you wish to remove this question from your question bank?</Text>
-            <View style={styl.actions}>
-              <Pressable style={[styl.btn, styl.cancel]} onPress={()=>setDel(false)}>
-                <Text style={styl.btnText}>Cancel</Text>
-              </Pressable>
-              <Pressable
-                style={[styl.btn, styl.delete]}
-                onPress={()=>{
-                  api.delete(`/questions/${question.id}`, token);
-                  setDel(false);
-                }}
-              >
-                <Text style={styl.btnText}>Remove</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      <DeleteQuestionModal token={token} question={question}/>
     </Pressable>
   );
 }
 const styl = StyleSheet.create({
   str:{
-    fontSize: "17" ,
+    /*fontSize: 17,*/
     alignSelf: "flex-end",
     alignItems: "flex-end",
     justifyContent: "flex-end"
@@ -334,22 +306,6 @@ const styl = StyleSheet.create({
     flexDirection: "row",
     gap: 12,
     justifyContent: "space-between",
-  },
-  btn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: "center",
-  },
-  cancel: {
-    backgroundColor: colors.purple400,
-  },
-  delete: {
-    backgroundColor: "#e53935",
-  },
-  btnText: {
-    color: "#fff",
-    fontWeight: "700",
   },
 });
 const qc = StyleSheet.create({
@@ -400,17 +356,32 @@ export default function QuestionBankScreen({ navigation, route }) {
   const insets = useSafeAreaInsets();
   const { courseId, sectionId, existingIds: existingIdsProp = [] } = route?.params ?? {};
   const pickMode = !!sectionId;
-  const existingIdSet = useMemo(() => new Set(existingIdsProp), [existingIdsProp]);
-
-  const [questions, setQuestions]   = useState([]);
-  const [loading, setLoading]       = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [query, setQuery]           = useState('');
-  const [activeTags, setActiveTags] = useState([]);
+  //const existingIdSet = useMemo(() => new Set(existingIdsProp), [existingIdsProp]);
+   const {
+    questions,
+    setQuestions,
+    loading,
+    setLoading,
+    refreshing,
+    setRefreshing,
+    query,
+    setQuery,
+    activeTags,
+    selectedIds,
+    adding,
+    setAdding,
+    allTags,
+    existingIdSet,
+    filteredQuestions,
+    onRefresh,
+    toggleTag,
+    clearFilters,
+    toggleSelect,
+  } =  useQuestionBank({
+    token,
+    existingIds: existingIdsProp,
+  });
   const [sheet, setSheet]           = useState(false);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [adding, setAdding]           = useState(false);
-
   const [isAddTagModalVisible, toggleAddTagModal] = useState(false);
   const [tagName, setTagName] = useState("");
 
@@ -427,31 +398,6 @@ export default function QuestionBankScreen({ navigation, route }) {
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
-  const onRefresh = () => { setRefreshing(true); load(); };
-
-  // Extract unique tags from all questions
-  const allTags = useMemo(() => {
-    const seen = new Set();
-    const result = [];
-    questions.forEach(q => (q.tags ?? []).forEach(t => {
-      if (!seen.has(t.name)) { seen.add(t.name); result.push(t); }
-    }));
-    return result;
-  }, [questions]);
-
-  const toggleTag = (name) =>
-    setActiveTags(ts => ts.includes(name) ? ts.filter(x => x !== name) : [...ts, name]);
-
-  const clearFilters = () => { setActiveTags([]); setQuery(''); };
-
-  const toggleSelect = (id) => {
-    setSelectedIds(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-  };
-
   const confirmAdd = async () => {
     if (selectedIds.size === 0 || adding) return;
     setAdding(true);
@@ -517,23 +463,11 @@ export default function QuestionBankScreen({ navigation, route }) {
       </View>
 
       {/* Search bar */}
-      <View style={styles.searchBar}>
-        <View style={styles.searchPill}>
-          <Ionicons name="search-outline" size={16} color={colors.neutral600} />
-          <TextInput
-            style={styles.searchInput}
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search questions"
-            placeholderTextColor={colors.neutral400}
-          />
-          {query.length > 0 && (
-            <Pressable onPress={() => setQuery('')} style={styles.clearBtn} hitSlop={6}>
-              <Ionicons name="close" size={11} color={colors.neutral800} />
-            </Pressable>
-          )}
-        </View>
-      </View>
+      <SearchBar
+      	query={query}
+	setQuery={setQuery}
+	placeholder="Search questions"
+      />
 
       {/* Tag filter */}
       <View style={styles.tagBar}>
@@ -607,7 +541,6 @@ export default function QuestionBankScreen({ navigation, route }) {
         </View>
       </Modal>
       </View>
-
       {/* Content */}
       <ScrollView
         contentContainerStyle={styles.list}
@@ -627,6 +560,7 @@ export default function QuestionBankScreen({ navigation, route }) {
         {loading ? (
           <ActivityIndicator size="small" color={colors.purple400} style={{ marginTop: 40 }} />
         ) : filtered.length === 0 ? (
+	
           <View style={styles.emptyCard}>
             <Text style={styles.emptyTitle}>No matching questions</Text>
             <Text style={styles.emptySub}>Try removing a tag or adjusting your search.</Text>
@@ -648,9 +582,8 @@ export default function QuestionBankScreen({ navigation, route }) {
               />
             ))}
           </View>
-        )}
+        )}}
       </ScrollView>
-
       {/* Pick mode — sticky confirm bar */}
       {pickMode && (
         <View style={[styles.pickBar, { paddingBottom: insets.bottom + 10 }]}>
@@ -714,23 +647,6 @@ const styles = StyleSheet.create({
   },
   title: { fontFamily: 'Nunito_900Black', fontSize: 26, color: colors.neutral900, lineHeight: 30 },
   subtitle: { fontFamily: 'Outfit_500Medium', fontSize: 12, color: colors.neutral600, marginTop: 3 },
-  searchBar: { backgroundColor: '#fff', paddingHorizontal: 14, paddingTop: 10, paddingBottom: 8 },
-  searchPill: {
-    flexDirection: 'row', alignItems: 'center', gap: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1.5, borderColor: colors.neutral200,
-    borderRadius: 999, paddingHorizontal: 14,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06, shadowRadius: 2, elevation: 1,
-  },
-  searchInput: {
-    flex: 1, paddingVertical: 11,
-    fontFamily: 'Outfit_500Medium', fontSize: 14, color: colors.neutral900,
-  },
-  clearBtn: {
-    width: 22, height: 22, borderRadius: 11,
-    backgroundColor: colors.neutral100, alignItems: 'center', justifyContent: 'center',
-  },
   tagBar: {
     backgroundColor: '#fff',
     paddingBottom: 8,

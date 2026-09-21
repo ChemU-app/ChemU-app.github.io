@@ -300,7 +300,7 @@ function QuestionRow({token, question, qStats, sectionMode, isLast, total, sid }
 }
 const styl = StyleSheet.create({
   str:{
-    fontSize: "7rem",
+    fontSize: 112,
     alignSelf: "flex-end",
     alignItems: "flex-end",
     justifyContent: "flex-end"
@@ -510,7 +510,7 @@ function SectionCard({token, section, orderIndex, expanded, onToggle, questions,
         <View style={sc.rightChips}>
 	 {/*Section Edit*/}
 	  <Pressable onPress={()=>{setEditSec(true)}}>
-	   <Ionicons name="settings-outline" size="1.5rem"/>
+	   <Ionicons name="settings-outline" size={24}/>
 	  </Pressable>
 	  <TagQuestionModal
 	   section={section}
