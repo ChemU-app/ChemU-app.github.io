@@ -513,13 +513,13 @@ function generateVariableSets(
         case 'element': {
 	   console.log(parameter);
 	   const matchingElements = ELEMENTS.filter((element) =>
-    		parameter.allowedElements.includes(element)
+    		parameter.allowedElements.includes(element.symbol)
   	   );
 	  const elementIndex = randomInteger(
 	    0,
 	    parameter.allowedElements.length - 1
 	  );
-
+	  console.log(matchingElements[elementIndex]);
           return {
             type: 'Element',
             elm: matchingElements[elementIndex],
