@@ -521,7 +521,7 @@ function generateVariableSets(
 	  );
 	  console.log(matchingElements[elementIndex]);
           return {
-            type: 'Element',
+            type: 'element',
             elm: matchingElements[elementIndex],
           };
         }
