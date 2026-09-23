@@ -511,8 +511,9 @@ function generateVariableSets(
           };
 
         case 'element': {
+	   console.log(parameter);
 	   const matchingElements = ELEMENTS.filter((element) =>
-    		allowedElements.includes(element)
+    		parameter.allowedElements.includes(element)
   	   );
 	  const elementIndex = randomInteger(
 	    0,
