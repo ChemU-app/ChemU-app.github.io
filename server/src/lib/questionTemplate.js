@@ -778,7 +778,7 @@ function validateTemplate(content, answerExpression, vars, type) {
     const [, p1, pr1, p2, pr2] = cmpAnswerMatch;
     const maxPosition = brackets.length;
     for (const [pos, prop] of [[parseInt(p1, 10), pr1], [parseInt(p2, 10), pr2]]) {
-      if (pos < 1 || pos > maxPosition)
+      if (pos < 0 || pos > maxPosition)
         return `answerExpression references slot ${pos} but content only has ${maxPosition} bracket(s)`;
       const src = brackets.find(b => b.position === pos);
       if (!src) return `answerExpression references slot ${pos} which does not exist`;

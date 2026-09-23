@@ -22,6 +22,7 @@ export function VariablePropertyPicker({
       <Text style={styles.title}>Insert variable property</Text>
 
       <FlatList
+      	
         data={variables}
         keyExtractor={(item) => item.id}
         renderItem={({ item, index }) => {

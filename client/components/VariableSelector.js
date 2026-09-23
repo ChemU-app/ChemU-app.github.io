@@ -37,7 +37,7 @@ export function VariableSelector({vars, textBox, setTextBox}){
     setVisible(false);
    }}
   >
-   <View style={styles.container}>
+   <ScrollView style={styles.container}>
       <Text style={styles.title}>Use a Variable</Text>
 
       <View style={styles.previewCard}>
@@ -68,13 +68,31 @@ export function VariableSelector({vars, textBox, setTextBox}){
       >
         <Text style={styles.backButtonText}>GO BACK</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   </Modal>
  </>);
 }
 
 const styles = StyleSheet.create({
-	container: {
+ addSlotText:{
+  fontFamily: 'Nunito_800ExtraBold',
+  fontSize: 10,
+  letterSpacing: 0.5,
+  color: colors.purple600,
+ },
+  addSlotBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.purple50,
+    borderWidth: 1.5,
+    borderColor: colors.purple200,
+    borderRadius: radius.full,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    marginLeft: 'auto',
+  },
+  container: {
     flex: 1,
     padding: 24,
     backgroundColor: "#F8FAFC",
