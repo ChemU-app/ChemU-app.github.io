@@ -4,6 +4,7 @@ import {Text, Modal, Pressable, FlatList, View, StyleSheet,
 } from 'react-native';
 import { colors, typeScale, screenPadding, radius } from '../theme';
 import Ionicons from "@react-native-vector-icons/ionicons";
+import {VariablePropertyPicker} from '../modals/VariablePropertyPicker';
 
 function Segment({children}){
  return <View style={styles.segment}>
@@ -18,143 +19,6 @@ function SideScroll({children}){
  >
   {children}
  </ScrollView>
-}
-
-function VarItem({text, setText, index, type}){
- switch(type){
- case "NA":{
-  return <></>;
- }
- case "Number":{
- return (
-  <Segment>
-   <Text>[{index}] {type}</Text>
-   <SideScroll>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.number]`);
-     }}style={styles.addSlotBtn}
-    >
-     <Text>Use Number</Text>
-    </Pressable>
-   </SideScroll>
-  </Segment>
- )
- }
- case "Element":{
- return (
-  <Segment>
-   <Text>[{index}] {type}</Text>
-    <SideScroll>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.name]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Name</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.symbol]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Symbol</Text>
-    </Pressable>
-
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.atomicNumber]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Atomic Number</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.neutrons]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Neutrons</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.protons]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Protons</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.electrons]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Electrons</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.molarMass]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Molar Mass</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.charge]`);
-    }} style={styles.addSlotBtn} >
-     <Text>Charge</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.chargeElectrons]`);
-    }} style={styles.addSlotBtn}>
-     <Text>Charge Electrons</Text>
-    </Pressable>
-    </SideScroll>
-  </Segment>
- )}
- case "Compound":{
- return (
-  <Segment>
-   <Text>[{index}] {type}</Text>
-    <SideScroll>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.name]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Name</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.formula]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Formula</Text>
-    </Pressable>
-
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.displayFormula]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Display Formula</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.molarMass]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Molar Mass</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.compoundType]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Compound Type</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.stateAtRoomTemperature]`);
-    }}style={styles.addSlotBtn}>
-     <Text>State at room Temperature</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.elements]`);
-    }}style={styles.addSlotBtn}>
-     <Text>Elements</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.elementCount]`);
-    }} style={styles.addSlotBtn} >
-     <Text>Element Count</Text>
-    </Pressable>
-    <Pressable onPress={()=>{
-     setText(text + `[${index}.atomCount]`);
-    }} style={styles.addSlotBtn}>
-     <Text>Atom Count</Text>
-    </Pressable>
-    </SideScroll>
-  </Segment>
- )
- }
- default:{
-  return <Segment>
-   <Text>[{index}] {type}</Text>
-  </Segment>
- }
- }
 }
 
 export function VariableSelector({vars, textBox, setTextBox}){
@@ -180,15 +44,12 @@ export function VariableSelector({vars, textBox, setTextBox}){
      <Text>{textBox}</Text>
     </Segment>
    </Segment>
-   <FlatList
-    data={vars}
-
-    renderItem={({item})=>{
-     return(
-      <VarItem text={textBox} setText={setTextBox} index={item.index} type={item.type}/>
-     );
-    }}
-   />
+     <VariablePropertyPicker
+                variables={vars}
+                onSelect={({variable, index, property, token})=>{
+                        setTextBox(textBox + `[${index}${token}]`);
+                }}
+         />
 
    <Pressable onPress={()=>{setVisible(false)}}>
     <Text>CANCEL</Text>

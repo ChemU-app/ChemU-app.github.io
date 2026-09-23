@@ -142,6 +142,7 @@ async function createQuestion(req, res) {
   if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   if (type === 'DYNAMIC') {
+    if(!variables) return res.status(401).json({error: "No Variables"});
     if(!sigFigures) return res.status(401).json({error: "No Sig Figure Value"});
     if(sigFigures < 0) return res.status(401).json({error: "Invalid Sig Figure Value"}); 
     if(!questionType) return res.status(400).json({error: "No Question Type"});
@@ -159,16 +160,6 @@ async function createQuestion(req, res) {
      if(!fibAnswers) return res.status(400).json({error: 'No Answers.'});
     }
 
-   let varTypes = [];
-   let varMin = [];
-   let varMax = [];
-   let i = 0;
-   while(i < variables.length){
-    varTypes[i] = variables[i].type;
-    varMin[i] = variables[i].min;
-    varMax[i] = variables[i].max;
-    i++;
-   }
     let data= {
         teacherId,
         tagIds: safeTagIds,
@@ -179,15 +170,13 @@ async function createQuestion(req, res) {
         difficulty,
 	fixedImage: fixedImage,
         answerExpression: answerExpression.trim(),
-	varTypes: varTypes,
-	varMin: varMin,
-	varMax: varMax,
         ...(answerUnit?.trim() && { answerUnit: answerUnit.trim() }),
         ...(distractorCount !== undefined && { distractorCount }),
     };
 
     if(type == "DYNAMIC"){
      data.questionType = questionType;
+     data.variables = variables;
      data.sigFigures = sigFigures ?? "0";
      data.dynFiBAnswers = {data: fibAnswers};
     }
@@ -203,17 +192,6 @@ async function createQuestion(req, res) {
     }
     return res.status(201).json(question);
   }
-   let varTypes = [];
-   let varMin = [];
-   let varMax = [];
-   let i = 0;
-   while(i < variables.length){
-    varTypes[i] = variables[i].type;
-    varMin[i] = variables[i].min;
-    varMax[i] = variables[i].max;
-    i++;
-   }
-
   const choiceError = type === 'FILL_IN_BLANK'
     ? validateFillInBlank(choices)
     : validateMultipleChoice(choices);
@@ -228,9 +206,7 @@ async function createQuestion(req, res) {
       correctExplanation: correctExplanation.trim(),
       incorrectExplanation: incorrectExplanation.trim(),
       difficulty,
-      varTypes: varTypes,
-      varMin: varMin,
-      varMax: varMax,
+      variables: variables,
       fixedImage: fixedImage,
       choices: { create: buildChoices(type, choices) },
     },
@@ -249,7 +225,6 @@ async function updateQuestion(req, res) {
   const { questionId } = req.params;
   const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, variables, questionType, fibAnswers, sigFigures} = req.body;
   const errors = [];
-  console.log(req.body);
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
   if (!content || !content.trim()) errors.push('content is required');
   if (!correctExplanation || !correctExplanation.trim()) errors.push('correctExplanation is required');
@@ -258,6 +233,7 @@ async function updateQuestion(req, res) {
   if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   if (type === 'DYNAMIC') {
+    if(!variables) return res.status(401).json({error: "No variables"});
     if(!sigFigures) return res.status(401).json({error: "No Sig Figure Value"});
     if(sigFigures < 0) return res.status(401).json({error: "Invalid Sig Figure Value"});
     if(!questionType) return res.status(401).json({error: "No Question Type"});
@@ -283,8 +259,6 @@ async function updateQuestion(req, res) {
   }
 
   const { error, status, question: existingQ } = await ownedQuestion(questionId, req.user.sub);
-  console.error("DID ERROR");
-  console.error(error);
   if (error) return res.status(status).json({ error });
 
   try {
@@ -306,24 +280,12 @@ async function updateQuestion(req, res) {
     };
 
     if (type === 'DYNAMIC') {
-      let varTypes = [];
-      let varMin = [];
-      let varMax = [];
-      let i = 0;
-      while(i < variables.length){
-       varTypes[i] = variables[i].type;
-       varMin[i] = variables[i].min;
-       varMax[i] = variables[i].max;
-       i++;
-      }
       updateData.questionType = questionType;
       updateData.dynFiBAnswers = {data: fibAnswers};
       updateData.answerExpression = answerExpression.trim();
       updateData.answerUnit = answerUnit?.trim() || null;
       updateData.distractorCount = distractorCount ?? null;
-      updateData.varTypes = varTypes;
-      updateData.varMin = varMin;
-      updateData.varMax = varMax;
+      updateData.variables = variables;
       updateData.sigFigures = sigFigures;
     } else {
       // Clear dynamic fields when changing type away from DYNAMIC

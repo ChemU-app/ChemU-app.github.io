@@ -17,6 +17,7 @@ import { colors, typeScale, screenPadding, radius } from '../../theme';
 import Ionicons from "@react-native-vector-icons/ionicons";
 import { FIXED_IMAGES } from "../../assets/fixedAssets/index";
 import { MathTextInput } from '../../components/MathInput';
+import {AddVariableModal} from '../../modals/AddVariableModal';
 // ─── Field label ─────────────────────────────────────────────────────────────
 
 function FieldLabel({ label, hint }) {
@@ -673,7 +674,7 @@ const answerPanel = StyleSheet.create({
        	 <FieldLabel label={`ANSWER EXPRESSION ${index + 1}`} />
 	
        	 <VariableSelector
-       	   vars={vars}
+       	   vars={varsM}
        	   textBox={answer}
        	   setTextBox={updateAnswer}
        	 />
@@ -735,6 +736,9 @@ export default function QuestionEditorScreen({ navigation, route }) {
   const { token } = useAuth();
   const { questionId, courseId } = route.params ?? {};
   const isEdit = !!questionId;
+  
+  const [varsM, setVarsM] = useState([]);
+  const [isAddVar, setIsAddVar] = useState(false);
 
   const [type, setType] = useState('MULTIPLE_CHOICE');
   const [difficulty, setDifficulty] = useState(2);
@@ -898,7 +902,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
         tagIds: selectedTagIds,
         choices: buildChoices(),
         fixedImage: fixedImageID,
-	variables: vars,
+	variables: varsM,
       };
       if (type === 'DYNAMIC') {
         body.questionType = (questionType == "MULTIPLE_CHOICE")?"M":"F";
@@ -1042,12 +1046,24 @@ export default function QuestionEditorScreen({ navigation, route }) {
          <>
           <FieldLabel label="VARIABLES"/>
 	   <FlatList
-	    data={vars}
+	    data={varsM}
             renderItem={({item})=>{
-	     return(<VarRow index={item.index} name={item.type}/>);
+	     return <VarRow index={0} name={item.label}/>
+	     //return(<VarRow index={item.index} name={item.type}/>);
 	    }}
 	   />
-	   <Segment>
+	    <Segment>
+            <Pressable onPress={()=>{setIsAddVar(true)}}>
+             <Text>ADD VARIABLE</Text>
+	    </Pressable>
+	   </Segment>
+	   <AddVariableModal
+	   	visible={isAddVar}
+		variables={varsM}
+		setVariables={setVarsM}
+		onClose={()=>setIsAddVar(false)}
+	   />
+	   {/*<Segment>
             <Pressable onPress={()=>{setVarModVis(true)}}>
              <Text>ADD VARIABLE</Text>
 	    </Pressable>
@@ -1069,7 +1085,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
              <Text>Cancel</Text>
 	    </Pressable>
 
-	   </Modal>
+	   </Modal>*/}
  
 	 </>
 	)}
@@ -1077,7 +1093,8 @@ export default function QuestionEditorScreen({ navigation, route }) {
         {type === 'DYNAMIC' ? (
           <View style={styles.fieldLabelRow}>
             <Text style={styles.fieldLabel}>QUESTION</Text>
-       	    <VariableSelector vars={vars} textBox={content} setTextBox={setContent}/>
+       	    <VariableSelector vars={varsM} textBox={content} setTextBox={setContent}/>
+
           </View>
         ) : (
           <FieldLabel label="QUESTION" />
@@ -1184,7 +1201,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
 	   )}
 	    {questionType === 'MULTIPLE_CHOICE' && (<>
              <FieldLabel label="ANSWER EXPRESSION" />
-	     <VariableSelector vars={vars} textBox={answerExpression} setTextBox={setAnswerExpression}/>
+	     <VariableSelector vars={varsM} textBox={answerExpression} setTextBox={setAnswerExpression}/>
              <AccentInput
                accent="purple"
                value={answerExpression}

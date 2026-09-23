@@ -95,9 +95,7 @@ model Question {
   attempts             QuestionAttempt[]
   tags                 QuestionTag[]     @relation(fields: [tagIds], references: [id])
   sections             Section[]         @relation(fields: [sectionIds], references: [id])
-  varTypes             String[]
-  varMin	       String[]
-  varMax	       String[]
+  variables            Json[]
   questionType	       String?
   sigFigures	       String		 @default("0")
   dynFiBAnswers	       Json?
