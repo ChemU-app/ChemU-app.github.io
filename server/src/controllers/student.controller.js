@@ -476,13 +476,11 @@ function generateVariableSets(
     ? question.variables
     : [];
 
-  const variableParameters = varTypes.map(
+  /*const variableParameters = varTypes.map(
     (type, index) => ({
       type,
-      min: Number(varMins[index]),
-      max: Number(varMaxs[index]),
     })
-  );
+  );*/
 
   const variableSets = [];
   const usedSignatures = new Set();
@@ -495,7 +493,7 @@ function generateVariableSets(
   let attempts = 0;
 
   function createVariableSet() {
-    return variableParameters.map(parameter => {
+    return varTypes.map(parameter => {
       switch (parameter.type) {
         case 'NA':
           return {
