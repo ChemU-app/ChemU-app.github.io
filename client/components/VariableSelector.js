@@ -37,59 +37,121 @@ export function VariableSelector({vars, textBox, setTextBox}){
     setVisible(false);
    }}
   >
-   <Text>Use A Variable</Text>
-   <Segment>
-    <Text>Currently Written:</Text>
-    <Segment>
-     <Text>{textBox}</Text>
-    </Segment>
-   </Segment>
-     <VariablePropertyPicker
-                variables={vars}
-                onSelect={({variable, index, property, token})=>{
-                        setTextBox(textBox + `[${index}${token}]`);
-                }}
-         />
+   <View style={styles.container}>
+      <Text style={styles.title}>Use a Variable</Text>
 
-   <Pressable onPress={()=>{setVisible(false)}}>
-    <Text>CANCEL</Text>
-   </Pressable>
+      <View style={styles.previewCard}>
+        <Text style={styles.label}>Currently Written:</Text>
+
+        <View style={styles.textBox}>
+          <Text style={styles.previewText}>
+            {textBox || "No text written yet"}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.pickerContainer}>
+        <VariablePropertyPicker
+          variables={vars}
+          onSelect={({ variable, index, property, token }) => {
+            setTextBox(textBox + `[${index}${token}]`);
+          }}
+        />
+      </View>
+
+      <Pressable
+        style={({ pressed }) => [
+          styles.backButton,
+          pressed && styles.backButtonPressed,
+        ]}
+        onPress={() => setVisible(false)}
+      >
+        <Text style={styles.backButtonText}>GO BACK</Text>
+      </Pressable>
+    </View>
   </Modal>
  </>);
 }
 
 const styles = StyleSheet.create({
- row:{
-  flexDirection: 'row',
- },
- segment:{
-    borderWidth: 1.5,
-    borderColor: colors.neutral200,
-    borderRadius: radius.md,
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    fontFamily: 'Outfit_500Medium',
-    fontSize: 14,
-    color: colors.neutral900,
-    backgroundColor: '#FFF',
- },
- addSlotText:{
-  fontFamily: 'Nunito_800ExtraBold',
-  fontSize: 10,
-  letterSpacing: 0.5,
-  color: colors.purple600,
- },
-  addSlotBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.purple50,
-    borderWidth: 1.5,
-    borderColor: colors.purple200,
-    borderRadius: radius.full,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    marginLeft: 'auto',
+	container: {
+    flex: 1,
+    padding: 24,
+    backgroundColor: "#F8FAFC",
   },
 
+  title: {
+    marginBottom: 20,
+    color: "#111827",
+    fontSize: 26,
+    fontWeight: "700",
+  },
+
+  previewCard: {
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+
+  label: {
+    marginBottom: 10,
+    color: "#64748B",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  textBox: {
+    minHeight: 52,
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 10,
+    backgroundColor: "#F8FAFC",
+  },
+
+  previewText: {
+    color: "#1E293B",
+    fontSize: 16,
+    lineHeight: 22,
+  },
+
+  pickerContainer: {
+    marginTop: 20,
+    padding: 16,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+  },
+
+  backButton: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 48,
+    marginTop: 24,
+    borderRadius: 10,
+    backgroundColor: "#2563EB",
+  },
+
+  backButtonPressed: {
+    backgroundColor: "#1D4ED8",
+    transform: [{ scale: 0.98 }],
+  },
+
+  backButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+    letterSpacing: 0.5,
+  },
 });

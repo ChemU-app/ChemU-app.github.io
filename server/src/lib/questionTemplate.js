@@ -254,11 +254,11 @@ function renderContent(content, brackets, vars) {
     out = out.replace(needle, String(vars[item.refPosition].num));
     break;
    }
-   case "Element":{
+   case "element":{
     out = out.replace(needle, String(vars[item.refPosition].elm[item.property]));
     break;
    }
-   case "Compound":{
+   case "compound":{
 	out = out.replace(needle, String(vars[item.refPosition].elm[item.property]));
 	break;
    }
@@ -384,15 +384,15 @@ function evaluateAnswer(expression, resolutions, vars) {
      val = "NaN";
      break;
     }
-    case "Number":{
+    case "number":{
      val = String(r.num)
      break;
     }
-    case "Element":{
+    case "element":{
      val = String(r.elm[prop])
      break;
     }
-    case "Compound":{
+    case "compound":{
      cal = String(r.com[prop])
     }
     }
@@ -666,11 +666,11 @@ function validateTemplate(content, answerExpression, vars, type) {
      if(!numProps.includes(b.property))return `${b.raw} is invalid, not a property of a Number`;
      break;
     }
-    case 'Element':{
+    case 'element':{
      if(!elmProps.includes(b.property))return `${b.raw} is invalid, not a property of an Element`;
      break;
     }
-    case 'Compound':{
+    case 'compound':{
      if(!COMPOUND_PROPS.includes(b.property))return `${b.raw} is invalid, not a property of an Compound`;
      break;
     }

@@ -19,7 +19,17 @@ export const variableProperties = {
       key: "atomicMass",
       label: "Atomic mass",
       format: "{{variable}}.atomicMass"
-    }
+    },
+    {
+      key: "electrons",
+      label: "Electrons",
+      format: "{{variable}}.electrons"
+    },
+    {
+      key: "protons",
+      label: "Protons",
+      format: "{{variable}}.protons"
+    },
   ],
 
   formula: [
