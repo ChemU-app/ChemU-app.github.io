@@ -517,7 +517,7 @@ function generateVariableSets(
   	   );
 	  const elementIndex = randomInteger(
 	    0,
-	    availableElements.length - 1
+	    parameter.allowedElements.length - 1
 	  );
 
           return {
