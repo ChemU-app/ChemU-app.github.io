@@ -472,16 +472,8 @@ function generateVariableSets(
   question,
   numberOfSets
 ) {
-  const varTypes = Array.isArray(question.varTypes)
-    ? question.varTypes
-    : [];
-
-  const varMins = Array.isArray(question.varMin)
-    ? question.varMin
-    : [];
-
-  const varMaxs = Array.isArray(question.varMax)
-    ? question.varMax
+  const varTypes = Array.isArray(question.variables)
+    ? question.variables
     : [];
 
   const variableParameters = varTypes.map(
@@ -511,7 +503,7 @@ function generateVariableSets(
             value: null,
           };
 
-        case 'Number':
+        case 'integer':
           return {
             type: 'Number',
             num: randomInteger(
@@ -520,49 +512,20 @@ function generateVariableSets(
             ),
           };
 
-        case 'Element': {
-          const minIndex = Math.max(
-            0,
-            Number(parameter.min) - 1
-          );
-
-          const maxIndex = Math.min(
-            ELEMENTS.length - 1,
-            Number(parameter.max) - 1
-          );
-
-          const elementIndex = randomInteger(
-            minIndex,
-            maxIndex
-          );
+        case 'element': {
+	   const matchingElements = ELEMENTS.filter((element) =>
+    		allowedElements.includes(element)
+  	   );
+	  const elementIndex = randomInteger(
+	    0,
+	    availableElements.length - 1
+	  );
 
           return {
             type: 'Element',
-            elm: ELEMENTS[elementIndex],
+            elm: matchingElements[elementIndex],
           };
         }
-	case 'Compound':{
-	  const minIndex = Math.max(
-            0,
-            Number(parameter.min) - 1
-          );
-
-          const maxIndex = Math.min( 
-            COMPOUNDS.length - 1,
-            Number(parameter.max) - 1
-          );
-
-          const elementIndex = randomInteger(
-            minIndex,
-            maxIndex
-          );
-
-          return {
-            type: 'Compound',
-            com: COMPOUNDS[elementIndex],
-          };
-	}
-
         default:
           return {
             type: parameter.type,

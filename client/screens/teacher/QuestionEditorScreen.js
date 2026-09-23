@@ -674,7 +674,7 @@ const answerPanel = StyleSheet.create({
        	 <FieldLabel label={`ANSWER EXPRESSION ${index + 1}`} />
 	
        	 <VariableSelector
-       	   vars={varsM}
+       	   vars={vars}
        	   textBox={answer}
        	   setTextBox={updateAnswer}
        	 />
@@ -823,7 +823,8 @@ export default function QuestionEditorScreen({ navigation, route }) {
             }
           }
         } else if (q.type === 'DYNAMIC') {
-          setAnswerExpression(q.answerExpression ?? '');
+          setVarsM(q.variables ?? []);
+	  setAnswerExpression(q.answerExpression ?? '');
           setAnswerUnit(q.answerUnit ?? '');
           setDistractorCount(q.distractorCount != null ? String(q.distractorCount) : '');
 	  setSigFigures(q.sigFigures != null ? String(q.sigFigures) : "0");
