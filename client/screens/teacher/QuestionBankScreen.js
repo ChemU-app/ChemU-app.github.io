@@ -582,7 +582,7 @@ export default function QuestionBankScreen({ navigation, route }) {
               />
             ))}
           </View>
-        )}}
+        )}
       </ScrollView>
       {/* Pick mode — sticky confirm bar */}
       {pickMode && (
