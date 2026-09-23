@@ -806,7 +806,7 @@ function validateTemplate(content, answerExpression, vars, type) {
   const slotRefs = [...answerExpression.matchAll(/\[(\d+)(?:\.([a-zA-Z]+))?\]/g)];
   for (const [, pos] of slotRefs) {
     const posNum = parseInt(pos, 10);
-    if (posNum < 1 || posNum > maxPosition) {
+    if (posNum < 0 || posNum > maxPosition) {
       return `answerExpression references slot ${posNum} but content only has ${maxPosition} bracket(s)`;
     }
   }
