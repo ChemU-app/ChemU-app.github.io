@@ -15,6 +15,8 @@ function randomDecimal(min, max, step, decimalPlaces) {
   console.log(steps);
   console.log(minInt);
   console.log(maxInt);
+  console.log(decimalPlaces);
+  console.log((value / scale).toFixed(decimalPlaces));
   //const value = minInt + Math.floor(Math.random());
   return Number((value / scale).toFixed(decimalPlaces));
 }
