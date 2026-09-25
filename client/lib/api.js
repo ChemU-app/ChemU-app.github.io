@@ -1,7 +1,7 @@
 import { getItem, setItem } from './storage';
 
 //const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
-//const BASE_URL="http://127.0.0.1:3000/";
+//const BASE_URL="http://127.0.0.1:3000";
 const BASE_URL="https://52.206.48.241";
 
 // Injected by AuthContext.initialize() to avoid circular imports

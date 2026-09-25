@@ -1,5 +1,6 @@
 const {ELEMENTS, COMPOUNDS} = require('../data/elements');
 const prisma = require('../lib/prisma');
+const mathematics = require('../utils/mathematics');
 const {
   parseBrackets, resolveAll, renderContent,
   evaluateAnswer, generateDistractors, buildDynamicChoices,
@@ -509,9 +510,18 @@ function generateVariableSets(
               parameter.max
             ),
           };
-
+	case 'decimal':{
+		return {
+			type: 'Number',
+			num: mathematics.randomDecimal(
+				parameter.min,
+				parameter.max,
+				parameter.step,
+				parameter.decimalPlaces
+			)
+		};
+	}
         case 'element': {
-	   console.log(parameter);
 	   const matchingElements = ELEMENTS.filter((element) =>
     		parameter.allowedElements.includes(element.symbol)
   	   );
@@ -519,7 +529,6 @@ function generateVariableSets(
 	    0,
 	    parameter.allowedElements.length - 1
 	  );
-	  console.log(matchingElements[elementIndex]);
           return {
             type: 'element',
             elm: matchingElements[elementIndex],

@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const periodicTable = require('./periodicTable');
 const compounds = require('./compounds');
-
+const variables = require('../variableTypes');
 const BRACKET_RE = /\[([^\]]+)\]/g;
 
 const EL_PROPS = ['name', 'symbol', 'number', 'mass'];
@@ -384,7 +384,10 @@ function evaluateAnswer(expression, resolutions, vars) {
      val = "NaN";
      break;
     }
-    case "number":{
+    case "integer":
+    case "decimal":
+    case "number":
+    case "Number":{
      val = String(r.num)
      break;
     }
@@ -651,8 +654,11 @@ function buildDynamicChoices(correctValue, distractors) {
 
 // ─── Validate template ────────────────────────────────────────────────────────
 
-const elmProps = ["name", "symbol", "molarMass", "atomicNumber", "neutrons", "protons", "electrons", "charge", "chargeElectrons"];
-const numProps = ["number"];
+function isValidVariableType(key, value){
+	if(!Object.hasOwn(variables.VARIABLE_TYPE_DEF, key)) return false;
+	if(!variables.VARIABLE_TYPE_DEF[key].includes(value)) return false;
+	return true;
+}
 
 function validateTemplate(content, answerExpression, vars, type) {
   const brackets = parseBrackets(content);
@@ -661,28 +667,12 @@ function validateTemplate(content, answerExpression, vars, type) {
    switch(b.type){
    case 'ref':{
     if(b.refPosition < 0 || b.refPosition >= vars.length)return `${b.raw} is invalid, var index out of range`;
-    switch(vars[b.refPosition].type){
-    case "Number":{
-     if(!numProps.includes(b.property))return `${b.raw} is invalid, not a property of a Number`;
-     break;
-    }
-    case 'element':{
-     if(!elmProps.includes(b.property))return `${b.raw} is invalid, not a property of an Element`;
-     break;
-    }
-    case 'compound':{
-     if(!COMPOUND_PROPS.includes(b.property))return `${b.raw} is invalid, not a property of an Compound`;
-     break;
-    }
-    default:{
-     return `${b.raw} : The type: ${vars[b.refPosition].type} is not handled yet`;
-    }
-    }
+    if(!isValidVariableType(vars[b.refPosition].type, b.property)) return `Type: ${b.type} with prop ${b.property} is invalid`;
     //return true;
     break;
    }
    default:{
-    console.log(b.type);
+    return `Invalid bracket type: ${b.type}`;
    }
    }
   }
