@@ -1,24 +1,41 @@
-function randomDecimal(min, max, step, decimalPlaces) {
+function randomDecimal(min, max, step = 1, decimalPlaces = 0) {
   if (step <= 0) step = 1;
- // if (max < min) throw new Error("max must be greater than or equal to min");
 
   const scale = 10 ** decimalPlaces;
   const minInt = Math.ceil(min * scale);
   const maxInt = Math.floor(max * scale);
   const stepInt = Math.round(step * scale);
 
-  const steps = Math.floor((maxInt - minInt) / stepInt);
-  const value = minInt + Math.floor(Math.random() * (steps + 1)) * stepInt;
-  console.log("+++++++++++++++++debug");
-  console.log(scale);
-  console.log(value);
-  console.log(steps);
-  console.log(minInt);
-  console.log(maxInt);
-  console.log(decimalPlaces);
-  console.log((value / scale).toFixed(decimalPlaces));
-  //const value = minInt + Math.floor(Math.random());
-  return Number((value / scale).toFixed(decimalPlaces));
+  const validValues = [];
+
+  for (let value = minInt; value <= maxInt; value += stepInt) {
+    validValues.push(value);
+  }
+
+  const selectedValue =
+    validValues[Math.floor(Math.random() * validValues.length)];
+
+  // Generate one random digit per digit in the formatted result.
+  const formatted = Math.abs(selectedValue / scale).toFixed(decimalPlaces);
+  const [wholePart, fractionalPart] = formatted.split(".");
+
+  const randomizeDigits = (text) =>
+    [...text]
+      .map(() => Math.floor(Math.random() * 10))
+      .join("");
+
+  const randomizedWholePart = randomizeDigits(wholePart).replace(/^0+/, "");
+
+  // Keep at least one digit if every generated digit was zero.
+  const resultWholePart = randomizedWholePart || "0";
+
+  if (decimalPlaces === 0) {
+    return `${selectedValue < 0 ? "-" : ""}${resultWholePart}`;
+  }
+
+  const randomizedFractionalPart = randomizeDigits(fractionalPart);
+
+  return `${selectedValue < 0 ? "-" : ""}${resultWholePart}.${randomizedFractionalPart}`;
 }
 
 function generateScientificNumber({
