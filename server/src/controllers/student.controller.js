@@ -496,30 +496,32 @@ function generateVariableSets(
   function createVariableSet() {
     return varTypes.map(parameter => {
       switch (parameter.type) {
-        case 'NA':
-          return {
-            type: 'NA',
-            value: null,
-          };
-
         case 'integer':
           return {
             type: 'Number',
-            num: randomInteger(
-              parameter.min,
-              parameter.max
-            ),
+            val:{value:	randomInteger(
+              	parameter.min,
+              	parameter.max
+            	)
+	    }
           };
 	case 'decimal':{
 		return {
 			type: 'Number',
-			num: mathematics.randomDecimal(
-				parameter.min,
-				parameter.max,
-				parameter.step,
-				parameter.decimalPlaces
-			)
+			val:{value:mathematics.randomDecimal(
+					parameter.min,
+					parameter.max,
+					parameter.step,
+					parameter.decimalPlaces
+				)
+			}
 		};
+	}
+	case 'scientificNumber':{
+		return {
+			type: 'scientificNumber',
+			val: mathematics.generateScientificNumber(parameter)
+		}
 	}
         case 'element': {
 	   const matchingElements = ELEMENTS.filter((element) =>
@@ -531,12 +533,13 @@ function generateVariableSets(
 	  );
           return {
             type: 'element',
-            elm: matchingElements[elementIndex],
+            val: matchingElements[elementIndex],
           };
         }
         default:
           return {
             type: parameter.type,
+	    val: {}
           };
       }
     });

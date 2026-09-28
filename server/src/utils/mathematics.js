@@ -57,10 +57,10 @@ function generateScientificNumber({
   const exponent = randomInteger(exponentMin, exponentMax);
 
   return {
-    coefficient,
-    exponent,
+    coefficient:coefficient,
+    exponent:exponent,
     value: coefficient * 10 ** exponent,
-    scientificNotation: `${coefficient}e${exponent}`,
+    scientificNotation: `${coefficient} x 10^${exponent}`,
   };
 }
 
@@ -77,7 +77,8 @@ function randomInteger(min, max) {
 }
 
 function randomNumber(min, max, step = 1, decimalPlaces = 0) {
-  if (step <= 0) {
+	if(step <= 0) step = 1;
+/*  if (step <= 0) {
     throw new Error("coefficientStep must be greater than 0");
   }
 
@@ -85,7 +86,7 @@ function randomNumber(min, max, step = 1, decimalPlaces = 0) {
     throw new Error(
       "coefficientMax must be greater than or equal to coefficientMin"
     );
-  }
+  }*/
 
   const scale = 10 ** decimalPlaces;
   const minInt = Math.ceil(min * scale);

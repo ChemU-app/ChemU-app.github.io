@@ -1180,7 +1180,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
              <FlatList
 	      data={dynFiBAnswers}
 	      renderItem={({item})=>{
-               return <DynAnswerFiBSet item={item} vars={vars} setAnswr={(itm)=>{
+               return <DynAnswerFiBSet item={item} vars={varsM} setAnswr={(itm)=>{
 	        let tmp = [];
 		let i = 0;
 		while(i < item.id){

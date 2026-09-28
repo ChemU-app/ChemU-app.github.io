@@ -15,6 +15,7 @@ import DynamicContent from '../../components/base/DynamicContent';
 import {useQuestionBank} from "../../hooks/QuestionBank";
 import SearchBar from "../../components/SearchBar";
 import DeleteQuestionModal from "../../modals/DeleteQuestionModal";
+import AddTagModal from "../../modals/AddTagModal";
 // ─── Sheet ─────────────────────────────────────────────────────────────────────
 
 function Sheet({ visible, onClose, title, children }) {
@@ -493,53 +494,11 @@ export default function QuestionBankScreen({ navigation, route }) {
 		icon={<Ionicons name="add-outline" size={11} color={colors.neutral}/>}
 		/>
         </ScrollView>
-	<Modal
-        visible={isAddTagModalVisible}
-        transparent={false}
-        animationType="fade"
-        onRequestClose={()=>{toggleAddTagModal(false)}}
-      >
-        <View style={styles.overlay}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.title}>Add a Tag</Text>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Insert a tag name"
-              value={tagName}
-              onChangeText={setTagName}
-              autoCapitalize="none"
-              autoFocus
-            />
-
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[styles.button, styles.cancelButton]}
-                onPress={()=>{toggleAddTagModal(false)}}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.button, styles.submitButton]}
-                onPress={()=>{
-			try{
-		      		api.post('/tags/', {
-					name: tagName
-				},token);
-			} catch (e){
-				
-			}
-			toggleAddTagModal(false)
-			navigation.navigate('QuestionBank')
-		}}
-              >
-                <Text style={styles.buttonText}>Submit</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
+      	<AddTagModal
+		token={token}
+		isAddTagModalVisible={isAddTagModalVisible}
+  		toggleAddTagModal={toggleAddTagModal}
+	/>
       </View>
       {/* Content */}
       <ScrollView

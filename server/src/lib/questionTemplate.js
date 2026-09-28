@@ -245,27 +245,7 @@ function renderContent(content, brackets, vars) {
   let out = content;
   for (const item of brackets){
    const needle = item.raw;
-   switch(vars[item.refPosition].type){
-   case "NA":{
-    out = out.replace(needle, "NaN");
-    break;
-   }
-   case "Number":{
-    out = out.replace(needle, String(vars[item.refPosition].num));
-    break;
-   }
-   case "element":{
-    out = out.replace(needle, String(vars[item.refPosition].elm[item.property]));
-    break;
-   }
-   case "compound":{
-	out = out.replace(needle, String(vars[item.refPosition].elm[item.property]));
-	break;
-   }
-   default:{
-    out = out.replace(needle, "NaN");
-   }
-   }
+   out = out.replace(needle, String(vars[item.refPosition].val[item.property]));
   }
   return out;
 }
@@ -378,27 +358,7 @@ function evaluateAnswer(expression, resolutions, vars) {
     //const r = resMap.get(parseInt(pos, 10));
     let r = vars[parseInt(pos, 10)];
     if (!r) return 'NaN';
-    let val = "";
-    switch(r.type){
-    case "NA":{
-     val = "NaN";
-     break;
-    }
-    case "integer":
-    case "decimal":
-    case "number":
-    case "Number":{
-     val = String(r.num)
-     break;
-    }
-    case "element":{
-     val = String(r.elm[prop])
-     break;
-    }
-    case "compound":{
-     cal = String(r.com[prop])
-    }
-    }
+    let val = r.val[prop] ?? "NaN";
     return val != null ? String(val) : 'NaN';
   });
 

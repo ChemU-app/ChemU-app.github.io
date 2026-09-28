@@ -114,7 +114,7 @@ const MAX_SCALE = 3.0;
 // ─── Element cell ─────────────────────────────────────────────────────────────
 
 function ElementCell({ el, onPress }) {
-  const [sym, num, name, , col, row, cat] = el;
+  const [sym, num, name, mass, col, row, cat] = el;
   const c = CAT_COLORS[cat] ?? CAT_COLORS['nonmetal'];
   const yIndex = row - 1;
   return (
@@ -125,6 +125,7 @@ function ElementCell({ el, onPress }) {
       <Text style={[styles.cellNum, { color: c.fg }]}>{num}</Text>
       <Text style={[styles.cellSym, { color: c.fg }]}>{sym}</Text>
       <Text style={[styles.cellName, { color: c.fg }]} numberOfLines={1}>{name}</Text>
+      <Text style={[styles.cellName, {color: c.fg}]} numberOfLines={1}>{mass}</Text>
     </Pressable>
   );
 }

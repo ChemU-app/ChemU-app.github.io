@@ -73,6 +73,11 @@ export const variableProperties = {
       format: "{{variable}}.value"
     },
     {
+      key: "scientificNotation",
+      label: "Scientific Notation representation of the value",
+      format: "{{variable}}.scientificNotation"
+    },
+    {
       key: "coefficient",
       label: "Coefficient",
       format: "{{variable}}.coefficient"
