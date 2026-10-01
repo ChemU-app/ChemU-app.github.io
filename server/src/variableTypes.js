@@ -3,6 +3,7 @@ const VARIABLE_TYPE_DEF = {
 	integer: ["value"],
 	decimal: ["value"],
 	scientificNumber: ["value", "scientificNotation", "coefficient", "exponent"],
+	formula: ["formula", "molarMass", "totalAtomsPerMolecule"],
 };
 
 module.exports = {

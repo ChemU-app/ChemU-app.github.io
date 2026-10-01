@@ -131,7 +131,7 @@ async function getSectionQuestions(req, res) {
 
 async function createQuestion(req, res) {
   const teacherId = req.user.sub;
-  const { type, content, correctExplanation, incorrectExplanation, difficulty, variables, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, questionType, fibAnswers, sigFigures } = req.body;
+  const { type, content, correctExplanation, incorrectExplanation, difficulty, variables, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, questionType, fibAnswers, sigFigures, scientificNotation } = req.body;
   const safeTagIds = Array.isArray(tagIds) ? tagIds : [];
   const errors = [];
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
@@ -142,12 +142,14 @@ async function createQuestion(req, res) {
   if (errors.length) return res.status(400).json({ error: errors.join('; ') });
 
   if (type === 'DYNAMIC') {
+    if(!scientificNotation) return res.status(401).json({error: "No scientific Notation toggle"});
     if(!variables) return res.status(401).json({error: "No Variables"});
     if(!sigFigures) return res.status(401).json({error: "No Sig Figure Value"});
     if(sigFigures < 0) return res.status(401).json({error: "Invalid Sig Figure Value"}); 
     if(!questionType) return res.status(400).json({error: "No Question Type"});
     if(!((questionType == "M") | (questionType == "F"))) return res.status(400).json({error: "Bad Question Type"});
     if(questionType == "M"){
+     if(Array.isArray(scientificNotation.data))return res.status(400).json({error: "Bad Scientific Notation Toggle"});
      if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
       return res.status(400).json({ error: 'distractorCount must be an integer between 1 and 10' });
      }
@@ -179,6 +181,7 @@ async function createQuestion(req, res) {
      data.variables = variables;
      data.sigFigures = sigFigures ?? "0";
      data.dynFiBAnswers = {data: fibAnswers};
+     data.scientificNotation = scientificNotation;
     }
 
     const question = await prisma.question.create({
@@ -223,7 +226,7 @@ async function createQuestion(req, res) {
 
 async function updateQuestion(req, res) {
   const { questionId } = req.params;
-  const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, variables, questionType, fibAnswers, sigFigures} = req.body;
+  const { type, content, correctExplanation, incorrectExplanation, difficulty, fixedImage, choices, answerExpression, answerUnit, distractorCount, tagIds, variables, questionType, fibAnswers, sigFigures, scientificNotation} = req.body;
   const errors = [];
   if (!type || !QUESTION_TYPES.includes(type)) errors.push(`type must be one of: ${QUESTION_TYPES.join(', ')}`);
   if (!content || !content.trim()) errors.push('content is required');
@@ -239,6 +242,7 @@ async function updateQuestion(req, res) {
     if(!questionType) return res.status(401).json({error: "No Question Type"});
     if(!((questionType == "M") | (questionType == "F"))) return res.status(402).json({error: "Bad Question Type"});
     if(questionType == "M"){
+     if(Array.isArray(scientificNotation.data))return res.status(400).json({error: 'Invalid Scientific Notation Toggle'});
      if (distractorCount !== undefined && (!Number.isInteger(distractorCount) || distractorCount < 1 || distractorCount > 10)) {
       return res.status(403).json({ error: 'distractorCount must be an integer between 1 and 10' });
      }

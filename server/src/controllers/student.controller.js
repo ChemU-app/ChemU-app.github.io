@@ -1,6 +1,7 @@
 const {ELEMENTS, COMPOUNDS} = require('../data/elements');
 const prisma = require('../lib/prisma');
 const mathematics = require('../utils/mathematics');
+const chemistry = require('../utils/chemistry');
 const {
   parseBrackets, resolveAll, renderContent,
   evaluateAnswer, generateDistractors, buildDynamicChoices,
@@ -523,6 +524,12 @@ function generateVariableSets(
 			val: mathematics.generateScientificNumber(parameter)
 		}
 	}
+	case 'formula':{
+		return {
+			type: 'formula',
+			val: chemistry.createCompound(parameter)
+		}
+	}
         case 'element': {
 	   const matchingElements = ELEMENTS.filter((element) =>
     		parameter.allowedElements.includes(element.symbol)
@@ -626,20 +633,42 @@ function toSuperscript(value) {
     .join("");
 }
 
-function formatNumber(value, sigFigures) {
+function formatNumber(value, sigFigures, useScientifcNotation) {
   if(sigFigures == 0) return value;
   const number = Number(value);
 
   if (!Number.isFinite(number)) {
     return value;
   }
+  let scientificNotat = true;
+  if(typeof(useScientificNotation)!= "undefined")scientificNotat = useScientificNotation;
 
-  const scientific = number.toExponential(sigFigures - 1);
-  const [coefficient, exponent] = scientific.split("e");
-  return `${coefficient}x10${toSuperscript(Number(exponent))}`;
+  if(scientificNotat){
+  	const scientific = number.toExponential(sigFigures - 1);
+  	const [coefficient, exponent] = scientific.split("e");
+  	return `${coefficient}x10${toSuperscript(Number(exponent))}`;
+  }else{
+  	const exponent = Math.floor(Math.log10(Math.abs(number)));
+  	const decimalPlaces = sigFigures - exponent - 1;
+
+  	if (decimalPlaces >= 0) {
+    		return number.toFixed(decimalPlaces);
+  	}
+
+ 	 const factor = 10 ** -decimalPlaces;
+	  const rounded = Math.round(number / factor) * factor;
+	
+  	return rounded.toLocaleString("en-US", {
+  	  useGrouping: false,
+  	  maximumFractionDigits: 0,
+  	  notation: "standard"
+  	});
+  }
 }
 
-function convertNumbers(data, sigFigures) {
+function convertNumbers(data, sigFigures, useScientificNotation) {
+  let scientificNotat = true;
+  if(typeof(useScientificNotation)!= "undefined")scientificNotat = useScientificNotation;
   if (sigFigures === 0) {
     return data;
   }
@@ -649,13 +678,37 @@ function convertNumbers(data, sigFigures) {
 
   if (typeof data === "string") {
     return data.replace(numberRegex, match => {
-      return formatNumber(match, sigFigures);
+      return formatNumber(match, sigFigures, scientificNotat);
     });
   }
 
   if (Array.isArray(data)) {
-    return data.map(item => convertNumbers(item, sigFigures));
-  }
+  return data.map((item, index) => {
+    if (Array.isArray(item)) {
+      return item.map((value, colIndex) => {
+        const scientificNotation = Array.isArray(scientificNotat)
+          ? scientificNotat[index]?.[colIndex]
+          : scientificNotat;
+
+        return convertNumbers(
+          value,
+          sigFigures,
+          scientificNotation
+        );
+      });
+    }
+
+    const scientificNotation = Array.isArray(scientificNotat)
+      ? scientificNotat[index]
+      : scientificNotat;
+
+    return convertNumbers(
+      item,
+      sigFigures,
+      scientificNotation
+    );
+  });
+}
 
   return data;
 }
@@ -707,6 +760,20 @@ async function processDynamicQuestion({
 //	JUMP
     const originalAnswers =
       question?.dynFiBAnswers?.data;
+    let scientificBools = question?.scientificNotation?.data ?? null;
+    if(scientificBools == null){
+    	scientificBools = [];
+	let i = 0;
+	while(i < originalAnswers.length){
+		let j = 0;
+		scientificBools.push([]);
+		while(j < originalAnswers[i].length){
+			scientificBools[i].push(true);
+			j++;
+		}
+		i++;
+	}
+    }
     const finalizedAnswers = finalizeAnswers(
       originalAnswers,
       resolutions,
@@ -718,7 +785,7 @@ async function processDynamicQuestion({
         ? finalizedAnswers
         : [[String(finalizedAnswers)]];
 
-    const numerics = convertNumbers(answerGroups, sigFigures);
+    const numerics = convertNumbers(answerGroups, sigFigures, scientificBools);
     const cleanedAnswers =
       cleanDynamicAnswerGroups(numerics);
     const choices =
@@ -731,11 +798,12 @@ async function processDynamicQuestion({
   }
 
   if (isMultipleChoice) {
+    const useScientificNotation = question?.scientificNotation?.data ?? true;
     const correctValue = convertNumbers(evaluateAnswer(
       question.answerExpression,
       resolutions,
       variables
-    ), sigFigures);
+    ), sigFigures, useScientificNotation);
 
     const safeCorrectValue = isNanLike(correctValue)
       ? question.answerExpression
@@ -756,7 +824,7 @@ async function processDynamicQuestion({
     );
 
     const cleanedChoices =
-      cleanDynamicChoices(convertNumbers(dynamicChoices, sigFigures));
+      cleanDynamicChoices(convertNumbers(dynamicChoices, sigFigures, useScientificNotation));
 
     await prisma.questionResolution.upsert({
       where: {

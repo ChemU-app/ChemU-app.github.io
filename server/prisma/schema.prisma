@@ -99,6 +99,7 @@ model Question {
   questionType	       String?
   sigFigures	       String		 @default("0")
   dynFiBAnswers	       Json?
+  scientificNotation	Json?
 }
 
 model QuestionTag {

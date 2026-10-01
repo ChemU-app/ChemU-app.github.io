@@ -18,6 +18,7 @@ import Ionicons from "@react-native-vector-icons/ionicons";
 import { FIXED_IMAGES } from "../../assets/fixedAssets/index";
 import { MathTextInput } from '../../components/MathInput';
 import {AddVariableModal} from '../../modals/AddVariableModal';
+import { ScientificNotationToggle} from '../../components/switches/ScientificNotationToggle';
 // ─── Field label ─────────────────────────────────────────────────────────────
 
 function FieldLabel({ label, hint }) {
@@ -648,8 +649,35 @@ const answerPanel = StyleSheet.create({
 
 //----DYN STUFF-------------------------------
 
-  function DynAnswerFiBSet({vars, item, setAnswr}) {
-   
+  function DynAnswerFiBSet({vars, item, setAnswr, setSN, sns}) {
+   function set2DValue(data, targetIndex, value){
+
+  	let currentIndex = 0;
+
+  return data.map((row) =>
+    row.map((currentValue) => {
+      const updatedValue =
+        currentIndex === targetIndex ? value : currentValue;
+
+      currentIndex++;
+    })
+  );
+  }
+   function get2DValue(data, targetIndex){
+  let currentIndex = 0;
+
+  for (let row = 0; row < data.length; row++) {
+    for (let column = 0; column < data[row].length; column++) {
+      if (currentIndex === targetIndex) {
+        return Boolean(data[row][column]);
+      }
+
+      currentIndex++;
+    }
+  }
+
+  return false;
+   }
    const [setAnswerExpression, setIsAnswerExprFocused] = useState(false);
    return (
      <Segment>
@@ -693,6 +721,19 @@ const answerPanel = StyleSheet.create({
        	     fontFamily: Platform.OS === "ios" ? "Courier" : "monospace",
        	   }}
        	 />
+		<ScientificNotationToggle
+			value={()=>{return get2DValue(sns.data, index)}}
+			onValueChange={(next)=>{
+				let tmp = sns;
+				console.log
+				console.log(tmp);
+				console.log(next);
+				console.log(index);
+				tmp.data = set2DValue(tmp.data, index, !next);
+				console.log(tmp);
+				setSN(tmp);
+			}}
+		/>
 	      </>
 	    );
 	  }}
@@ -757,6 +798,9 @@ export default function QuestionEditorScreen({ navigation, route }) {
   const [answerUnit, setAnswerUnit] = useState('');
   const [distractorCount, setDistractorCount] = useState('');
   const [sigFigures, setSigFigures] = useState("0");
+  const [useScientificNotation, setScientificNotation] = useState({
+	data:false
+  });
 
   // Tags
   const [availableTags, setAvailableTags] = useState([]);
@@ -799,9 +843,6 @@ export default function QuestionEditorScreen({ navigation, route }) {
         setFixedImageID(q.fixedImage ?? "");
 	if(typeof q.questionType != undefined){
 	 setQuestionType((q.questionType == "M")?"MULTIPLE_CHOICE":"FILL_IN_BLANK");
-	 if(q.questionType == "F"){
-          console.log(q.dynFiBAnswers);
-	 }
 	}
 	if(q.varTypes && q.varMin && q.varMax){
          let i = 0;
@@ -817,7 +858,8 @@ export default function QuestionEditorScreen({ navigation, route }) {
           if (q.choices?.length) {
             if (q.type === 'FILL_IN_BLANK') {
               const sorted = [...q.choices].sort((a, b) => a.blankIndex - b.blankIndex);
-              setFib(q.dynFiBAnswers);Answers(sorted.map(c => c.content));
+              setFib(q.dynFiBAnswers);
+	      Answers(sorted.map(c => c.content));
             } else {
               setMcOptions(q.choices);
             }
@@ -825,6 +867,17 @@ export default function QuestionEditorScreen({ navigation, route }) {
         } else if (q.type === 'DYNAMIC') {
           setVarsM(q.variables ?? []);
 	  setAnswerExpression(q.answerExpression ?? '');
+	  if(q?.questionType == "F"){
+		let answers = q?.dynFiBAnswers?.data ?? [[]];
+
+		let i = 0;
+		let nAnswers = [];
+		while(i < answers.length){
+			nAnswers.push({id:i, answers:answers[i]});
+			i++;
+		}
+		setDynFiBAnswers(nAnswers);
+	  }
           setAnswerUnit(q.answerUnit ?? '');
           setDistractorCount(q.distractorCount != null ? String(q.distractorCount) : '');
 	  setSigFigures(q.sigFigures != null ? String(q.sigFigures) : "0");
@@ -916,6 +969,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
 	  i++;
 	 }
          body.fibAnswers = fibAnswers;
+	 body.scientificNotation = useScientificNotation;
 	}
         body.answerExpression = answerExpression.trim();
         if (answerUnit.trim()) body.answerUnit = answerUnit.trim();
@@ -924,10 +978,8 @@ export default function QuestionEditorScreen({ navigation, route }) {
 
       }
       if (isEdit) {
-        console.error("PATCH");
         await api.patch(`/questions/${questionId}`, body, token);
       } else {
-        console.error("POST");
         await api.post('/questions', body, token);
       }
       navigation.goBack();
@@ -1011,6 +1063,9 @@ export default function QuestionEditorScreen({ navigation, route }) {
    {vType:'Number', desc: "Random floating-point number", iType: 'range'},
    {vType:'Compound', desc: "Random Compound between 1 and 14", iType: 'range'}
   ];
+
+  if(questionType == "MULTIPLE_CHOICE" && Array.isArray(useScientificNotation.data))setScientificNotation({data:false});
+  if(questionType != "MULTIPLE_CHOICE" && !Array.isArray(useScientificNotation.data))setScientificNotation({data:[[false]]});
 
   return (
     <ScreenSurface>
@@ -1180,7 +1235,10 @@ export default function QuestionEditorScreen({ navigation, route }) {
              <FlatList
 	      data={dynFiBAnswers}
 	      renderItem={({item})=>{
-               return <DynAnswerFiBSet item={item} vars={varsM} setAnswr={(itm)=>{
+               return <DynAnswerFiBSet item={item} vars={varsM}
+	       sns={useScientificNotation}
+	       setSN={setScientificNotation}
+	       setAnswr={(itm)=>{
 	        let tmp = [];
 		let i = 0;
 		while(i < item.id){
@@ -1232,6 +1290,7 @@ export default function QuestionEditorScreen({ navigation, route }) {
               </View>
 	      {questionType === 'MULTIPLE_CHOICE' && (
 	      <>
+	       <View>
                <View style={{ flex: 1 }}>
                  <FieldLabel label="DISTRACTORS" hint="default 3" />
                  <AccentInput
@@ -1242,7 +1301,9 @@ export default function QuestionEditorScreen({ navigation, route }) {
                    keyboardType="numeric"
                  />
                </View>
-               <View style={{ flex: 1 }}>
+	       </View>
+	       <View>
+	               <View style={{ flex: 1 }}>
                  <FieldLabel label="SIGNIFICANT FIGURES" hint="default full" />
                  <AccentInput
                    accent="purple"
@@ -1252,8 +1313,14 @@ export default function QuestionEditorScreen({ navigation, route }) {
                    keyboardType="numeric"
                  />
                </View>
-
-
+		
+		<ScientificNotationToggle
+			value={useScientificNotation.data}
+			onValueChange={(next)=>{
+				setScientificNotation({data: next})
+			}}
+		/>
+		</View>
 	       </>
 	      )}
 	      {questionType === 'FILL_IN_BLANK' && (<>
@@ -1272,6 +1339,18 @@ export default function QuestionEditorScreen({ navigation, route }) {
                      i++;
 		    }
 		    setDynFiBAnswers(dyn);
+		    i=0;
+		    let tmp = {data:[]};
+		    while(i< dyn.length){
+			let j = 0;
+			tmp.data.push([]);
+			while(j < dyn[i].length){
+				tmp.data[i].push(false);
+				j++;
+			}
+			i++;
+		    }
+		    setScientificNotation(tmp);
 		   }}
                    placeholder="1"
                    keyboardType="numeric"
