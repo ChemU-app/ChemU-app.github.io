@@ -641,13 +641,13 @@ function formatNumber(value, sigFigures, useScientifcNotation) {
     return value;
   }
   let scientificNotat = true;
-  if(typeof(useScientificNotation)!= "undefined")scientificNotat = useScientificNotation;
-
+  if(typeof(useScientifcNotation)!= "undefined")scientificNotat = useScientifcNotation;
   if(scientificNotat){
   	const scientific = number.toExponential(sigFigures - 1);
   	const [coefficient, exponent] = scientific.split("e");
   	return `${coefficient}x10${toSuperscript(Number(exponent))}`;
   }else{
+  	console.log("HERE");
   	const exponent = Math.floor(Math.log10(Math.abs(number)));
   	const decimalPlaces = sigFigures - exponent - 1;
 

@@ -696,7 +696,7 @@ const answerPanel = StyleSheet.create({
 	
     	  setAnswr(updatedItem);
     	};
-
+	console.log(index);
     	return (
       	<>
        	 <FieldLabel label={`ANSWER EXPRESSION ${index + 1}`} />
@@ -722,15 +722,10 @@ const answerPanel = StyleSheet.create({
        	   }}
        	 />
 		<ScientificNotationToggle
-			value={()=>{return get2DValue(sns.data, index)}}
+			value={sns.data[item.id][index]}
 			onValueChange={(next)=>{
-				let tmp = sns;
-				console.log
-				console.log(tmp);
-				console.log(next);
-				console.log(index);
-				tmp.data = set2DValue(tmp.data, index, !next);
-				console.log(tmp);
+				let tmp = {data: sns.data};
+				tmp.data[item.id][index] = !sns.data[item.id][index];
 				setSN(tmp);
 			}}
 		/>
@@ -748,10 +743,14 @@ const answerPanel = StyleSheet.create({
                     onChangeText={(newNum)=>{
 		     let i = 0;
 		     let tmp = {id:item.id, answers:[]};
+		     let tmpm = [];
 		     while(i < Number(newNum)){
 		      tmp.answers.push("");
+		      tmpm.push(true);
 		      i++;
 		     }
+		     sns.data[item.id] = tmpm;
+		     setSN(sns);
 		     setAnswr(tmp);
 		    }}
                     placeholder="1"
@@ -1344,8 +1343,8 @@ export default function QuestionEditorScreen({ navigation, route }) {
 		    while(i< dyn.length){
 			let j = 0;
 			tmp.data.push([]);
-			while(j < dyn[i].length){
-				tmp.data[i].push(false);
+			while(j < dyn[i].answers.length){
+				tmp.data[i].push(true);
 				j++;
 			}
 			i++;

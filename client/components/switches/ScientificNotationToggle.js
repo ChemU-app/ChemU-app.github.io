@@ -14,7 +14,6 @@ export function ScientificNotationToggle({
         onValueChange={onValueChange}
         accessibilityRole="switch"
         accessibilityLabel="Scientific notation"
-        accessibilityState={{ checked: value }}
         trackColor={{ false: '#767577', true: '#81b0ff' }}
         thumbColor={value ? '#2563eb' : '#f4f3f4'}
         ios_backgroundColor="#767577"
