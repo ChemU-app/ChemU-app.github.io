@@ -783,12 +783,14 @@ async function processDynamicQuestion({
 		i++;
 	}
     }
+    console.log("ANSWER DEBUG");
+    console.log(originalAnswers);
     const finalizedAnswers = finalizeAnswers(
       originalAnswers,
       resolutions,
       variables
     );
-
+    console.log(finalizedAnswers);
     const answerGroups =
       Array.isArray(finalizedAnswers)
         ? finalizedAnswers
