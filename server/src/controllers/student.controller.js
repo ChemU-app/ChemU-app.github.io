@@ -636,11 +636,11 @@ function toSuperscript(value) {
 function formatNumber(value, sigFigures, useScientificNotation = true) {
   console.log("FORMAT NUMBER");
   console.log(value);
-  if (sigFigures === 0) return value;
-
   const number = Number(value);
+  sigFigures = Number(sigFigures);
 
   if (!Number.isFinite(number) || !Number.isInteger(sigFigures) || sigFigures < 1) {
+    console.log("BadNumber");
     return value;
   }
 
