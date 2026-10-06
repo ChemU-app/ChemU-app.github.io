@@ -634,6 +634,8 @@ function toSuperscript(value) {
 }
 
 function formatNumber(value, sigFigures, useScientificNotation = true) {
+  console.log("FORMAT NUMBER");
+  console.log(value);
   if (sigFigures === 0) return value;
 
   const number = Number(value);
@@ -643,6 +645,7 @@ function formatNumber(value, sigFigures, useScientificNotation = true) {
   }
 
   if (number === 0) {
+    console.log("0 hit");
     return useScientificNotation
       ? `0x10${toSuperscript(0)}`
       : "0";
@@ -651,7 +654,7 @@ function formatNumber(value, sigFigures, useScientificNotation = true) {
   if (useScientificNotation) {
     const scientific = number.toExponential(sigFigures - 1);
     const [coefficient, exponent] = scientific.split("e");
-
+    console.log(`SCI:${coefficient}x10${toSuperscript(Number(exponent))}`);
     return `${coefficient}x10${toSuperscript(Number(exponent))}`;
   }
 
