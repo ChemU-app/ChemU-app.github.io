@@ -634,18 +634,14 @@ function toSuperscript(value) {
 }
 
 function formatNumber(value, sigFigures, useScientificNotation = true) {
-  console.log("FORMAT NUMBER");
-  console.log(value);
   const number = Number(value);
   sigFigures = Number(sigFigures);
 
   if (!Number.isFinite(number) || !Number.isInteger(sigFigures) || sigFigures < 1) {
-    console.log("BadNumber");
     return value;
   }
 
   if (number === 0) {
-    console.log("0 hit");
     return useScientificNotation
       ? `0x10${toSuperscript(0)}`
       : "0";
@@ -654,7 +650,6 @@ function formatNumber(value, sigFigures, useScientificNotation = true) {
   if (useScientificNotation) {
     const scientific = number.toExponential(sigFigures - 1);
     const [coefficient, exponent] = scientific.split("e");
-    console.log(`SCI:${coefficient}x10${toSuperscript(Number(exponent))}`);
     return `${coefficient}x10${toSuperscript(Number(exponent))}`;
   }
 
@@ -678,8 +673,6 @@ function formatNumber(value, sigFigures, useScientificNotation = true) {
 function convertNumbers(data, sigFigures, useScientificNotation) {
   let scientificNotat = true;
   if(typeof(useScientificNotation)!= "undefined")scientificNotat = useScientificNotation;
-  console.log("Figures");
-  console.log(sigFigures);
   if (sigFigures === 0) {
     return data;
   }
@@ -687,18 +680,14 @@ function convertNumbers(data, sigFigures, useScientificNotation) {
   const numberRegex =
     /[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/g;
 
-  console.log(typeof data)
   if(!Array.isArray(data) && typeof data != "string") data= String(data);
-  console.log(typeof data)
   if (typeof data === "string") {
-    console.log("STR");
     return data.replace(numberRegex, match => {
       return formatNumber(match, sigFigures, scientificNotat);
     });
   }
 
   if (Array.isArray(data)) {
-  console.log("ARR");
   return data.map((item, index) => {
     if (Array.isArray(item)) {
       return item.map((value, colIndex) => {
@@ -799,9 +788,7 @@ async function processDynamicQuestion({
       Array.isArray(finalizedAnswers)
         ? finalizedAnswers
         : [[String(finalizedAnswers)]];
-    console.log("NUMERICS?");
     const numerics = convertNumbers(answerGroups, sigFigures, scientificBools);
-    console.log(numerics);
     const cleanedAnswers =
       cleanDynamicAnswerGroups(numerics);
     const choices =
