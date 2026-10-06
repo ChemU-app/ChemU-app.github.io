@@ -687,15 +687,18 @@ function convertNumbers(data, sigFigures, useScientificNotation) {
   const numberRegex =
     /[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/g;
 
+  console.log(typeof data)
   if(!Array.isArray(data) && typeof data != "string") data= String(data);
-
+  console.log(typeof data)
   if (typeof data === "string") {
+    console.log("STR");
     return data.replace(numberRegex, match => {
       return formatNumber(match, sigFigures, scientificNotat);
     });
   }
 
   if (Array.isArray(data)) {
+  console.log("ARR");
   return data.map((item, index) => {
     if (Array.isArray(item)) {
       return item.map((value, colIndex) => {
