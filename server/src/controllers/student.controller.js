@@ -633,37 +633,43 @@ function toSuperscript(value) {
     .join("");
 }
 
-function formatNumber(value, sigFigures, useScientifcNotation) {
-  if(sigFigures == 0) return value;
+function formatNumber(value, sigFigures, useScientificNotation = true) {
+  if (sigFigures === 0) return value;
+
   const number = Number(value);
 
-  if (!Number.isFinite(number)) {
+  if (!Number.isFinite(number) || !Number.isInteger(sigFigures) || sigFigures < 1) {
     return value;
   }
-  let scientificNotat = true;
-  if(typeof(useScientifcNotation)!= "undefined")scientificNotat = useScientifcNotation;
-  if(scientificNotat){
-  	const scientific = number.toExponential(sigFigures - 1);
-  	const [coefficient, exponent] = scientific.split("e");
-  	return `${coefficient}x10${toSuperscript(Number(exponent))}`;
-  }else{
-  	console.log("HERE");
-  	const exponent = Math.floor(Math.log10(Math.abs(number)));
-  	const decimalPlaces = sigFigures - exponent - 1;
 
-  	if (decimalPlaces >= 0) {
-    		return number.toFixed(decimalPlaces);
-  	}
-
- 	 const factor = 10 ** -decimalPlaces;
-	  const rounded = Math.round(number / factor) * factor;
-	
-  	return rounded.toLocaleString("en-US", {
-  	  useGrouping: false,
-  	  maximumFractionDigits: 0,
-  	  notation: "standard"
-  	});
+  if (number === 0) {
+    return useScientificNotation
+      ? `0x10${toSuperscript(0)}`
+      : "0";
   }
+
+  if (useScientificNotation) {
+    const scientific = number.toExponential(sigFigures - 1);
+    const [coefficient, exponent] = scientific.split("e");
+
+    return `${coefficient}x10${toSuperscript(Number(exponent))}`;
+  }
+
+  const exponent = Math.floor(Math.log10(Math.abs(number)));
+  const decimalPlaces = sigFigures - exponent - 1;
+
+  if (decimalPlaces >= 0) {
+    return number.toFixed(decimalPlaces);
+  }
+
+  const factor = 10 ** -decimalPlaces;
+  const rounded = Math.round(number / factor) * factor;
+
+  return rounded.toLocaleString("en-US", {
+    useGrouping: false,
+    maximumFractionDigits: 0,
+    notation: "standard"
+  });
 }
 
 function convertNumbers(data, sigFigures, useScientificNotation) {

@@ -266,7 +266,7 @@ function QuestionRow({token, question, qStats, sectionMode, isLast, total, sid }
         </View>
       <View>
         <Pressable style={styl.str} onPress={()=>setDel(true)}>
-          <Ionicons name="trash-outline" size="1rem"></Ionicons>
+          <Ionicons name="trash-outline" size={16}></Ionicons>
         </Pressable>
       </View>
       <Modal animationType='fade' transparent={false} visible={showDel} onRequestClose={()=>setDel(false)}>

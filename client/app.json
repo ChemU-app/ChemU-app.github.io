@@ -6,12 +6,6 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#F8F7FF"
-    },
     "experiments": {
       "baseUrl": "/"
     },
@@ -28,7 +22,6 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#F8F7FF"
       },
-      "edgeToEdgeEnabled": true
     },
     "web": {
       "favicon": "./assets/icon.png"
@@ -37,7 +30,15 @@
       "expo-font",
       "expo-secure-store",
       "expo-sharing",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+      	"expo-splash-screen",
+      	{
+      		"backgroundColor": "#F8F7FF",
+		"image":"./assets/splash-icon.png",
+		"imageWidth":"200"
+      	}
+      ]
     ],
     "extra": {
       "eas": {

@@ -569,9 +569,11 @@ function QuestionBankCard({ onPress }) {
         style={styles.qbGradient}
       >
         <Svg viewBox="0 0 100 100" width={110} height={110} style={styles.qbAtom}>
-          <Ellipse cx="50" cy="50" rx="40" ry="14" fill="none" stroke="#fff" strokeWidth="2"/>
-          <Ellipse cx="50" cy="50" rx="40" ry="14" fill="none" stroke="#fff" strokeWidth="2" rotation="60" originX="50" originY="50"/>
-          <Ellipse cx="50" cy="50" rx="40" ry="14" fill="none" stroke="#fff" strokeWidth="2" rotation="120" originX="50" originY="50"/>
+          <Ellipse cx={50} cy={50} rx={40} ry={14} fill="none" stroke="#fff" strokeWidth={2}/>
+	  <Ellipse cx={50} cy={50} rx={40} ry={14} fill="none" stroke="#fff" strokeWidth={2} transform="rotate(60  50 50)"/>
+          <Ellipse cx={50} cy={50} rx={40} ry={14} fill="none" stroke="#fff" strokeWidth={2} transform="rotate(120 50 50)"/>
+          {/*<Ellipse cx="50" cy="50" rx="40" ry="14" fill="none" stroke="#fff" strokeWidth="2" rotation="60" originX="50" originY="50"/>
+          <Ellipse cx="50" cy="50" rx="40" ry="14" fill="none" stroke="#fff" strokeWidth="2" rotation="120" originX="50" originY="50"/>*/}
         </Svg>
         <View style={styles.qbIconBox}>
           <Ionicons name="library" size={28} color="#fff" />
