@@ -678,6 +678,8 @@ function formatNumber(value, sigFigures, useScientificNotation = true) {
 function convertNumbers(data, sigFigures, useScientificNotation) {
   let scientificNotat = true;
   if(typeof(useScientificNotation)!= "undefined")scientificNotat = useScientificNotation;
+  console.log("Figures");
+  console.log(sigFigures);
   if (sigFigures === 0) {
     return data;
   }
