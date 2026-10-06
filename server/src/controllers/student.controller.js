@@ -687,6 +687,8 @@ function convertNumbers(data, sigFigures, useScientificNotation) {
   const numberRegex =
     /[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?/g;
 
+  if(!Array.isArray(data) && typeof data != "string") data= String(data);
+
   if (typeof data === "string") {
     return data.replace(numberRegex, match => {
       return formatNumber(match, sigFigures, scientificNotat);
