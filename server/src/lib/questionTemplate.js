@@ -336,6 +336,205 @@ function safeArithmetic(expr) {
 }
 
 function evaluateAnswer(expression, resolutions, vars) {
+  // `resolutions` is intentionally ignored.
+
+  if (!Array.isArray(vars)) {
+    vars = [];
+  }
+
+  const numberPattern =
+    /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+
+  // Resolve variables such as [0.score] or [12.user.points].
+  expression = String(expression).replace(
+    /\[(\d+)\.([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)*)\]/g,
+    (_, index, path) => {
+      let value = vars[Number(index)]?.val;
+
+      for (const property of path.split(".")) {
+        value = value?.[property];
+      }
+
+      // Allow numbers and stringified JavaScript numbers.
+      if (
+        typeof value === "number" &&
+        Number.isFinite(value)
+      ) {
+        return String(value);
+      }
+
+      if (
+        typeof value === "string" &&
+        numberPattern.test(value.trim()) &&
+        Number.isFinite(Number(value))
+      ) {
+        return value.trim();
+      }
+
+      // Invalid or non-numeric variables become zero.
+      return "0";
+    }
+  );
+
+  // Convert superscript exponents to normal exponent notation.
+  const superscripts = {
+    "⁰": "0",
+    "¹": "1",
+    "²": "2",
+    "³": "3",
+    "⁴": "4",
+    "⁵": "5",
+    "⁶": "6",
+    "⁷": "7",
+    "⁸": "8",
+    "⁹": "9",
+    "⁺": "+",
+    "⁻": "-",
+    "⁽": "(",
+    "⁾": ")"
+  };
+
+  expression = expression.replace(
+    /([0-9.)]+)([⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁽⁾]+)/g,
+    (_, base, exponent) =>
+      `${base}^${[...exponent]
+        .map(char => superscripts[char])
+        .join("")}`
+  );
+
+  // Match numbers including scientific notation:
+  // 12, 12.5, .5, 1e3, 1.2E-4
+  const tokens =
+    expression.match(
+      /(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?|[()+\-*/%^]/g
+    ) || [];
+
+  const output = [];
+  const operators = [];
+
+  const precedence = {
+    "+": 1,
+    "-": 1,
+    "*": 2,
+    "/": 2,
+    "%": 2,
+    "^": 3
+  };
+
+  const rightAssociative = new Set(["^"]);
+  let previousType = "start";
+
+  for (const token of tokens) {
+    if (
+      /^(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(token)
+    ) {
+      output.push(Number(token));
+      previousType = "number";
+      continue;
+    }
+
+    if (token === "(") {
+      operators.push(token);
+      previousType = "leftParen";
+      continue;
+    }
+
+    if (token === ")") {
+      while (
+        operators.length &&
+        operators[operators.length - 1] !== "("
+      ) {
+        output.push(operators.pop());
+      }
+
+      if (operators[operators.length - 1] === "(") {
+        operators.pop();
+      }
+
+      previousType = "rightParen";
+      continue;
+    }
+
+    // Handle unary minus.
+    if (
+      token === "-" &&
+      (
+        previousType === "start" ||
+        previousType === "operator" ||
+        previousType === "leftParen"
+      )
+    ) {
+      output.push(0);
+    }
+
+    while (operators.length) {
+      const top = operators[operators.length - 1];
+
+      if (top === "(") {
+        break;
+      }
+
+      const shouldPop = rightAssociative.has(token)
+        ? precedence[token] < precedence[top]
+        : precedence[token] <= precedence[top];
+
+      if (!shouldPop) {
+        break;
+      }
+
+      output.push(operators.pop());
+    }
+
+    operators.push(token);
+    previousType = "operator";
+  }
+
+  while (operators.length) {
+    const operator = operators.pop();
+
+    if (operator !== "(") {
+      output.push(operator);
+    }
+  }
+
+  const stack = [];
+
+  for (const token of output) {
+    if (typeof token === "number") {
+      stack.push(token);
+      continue;
+    }
+
+    const right = stack.pop();
+    const left = stack.pop();
+
+    switch (token) {
+      case "+":
+        stack.push(left + right);
+        break;
+      case "-":
+        stack.push(left - right);
+        break;
+      case "*":
+        stack.push(left * right);
+        break;
+      case "/":
+        stack.push(left / right);
+        break;
+      case "%":
+        stack.push(left % right);
+        break;
+      case "^":
+        stack.push(left ** right);
+        break;
+    }
+  }
+
+  return stack.length ? stack[0] : 0;
+}
+
+
+/*function evaluateAnswer(expression, resolutions, vars) {
   const resMap = new Map(resolutions.map(r => [r.position, r]));
   // Comparison operators — return displayValue of the winning slot
   const cmpMatch = expression.trim().match(CMP_EXPR_RE);
@@ -375,8 +574,8 @@ function evaluateAnswer(expression, resolutions, vars) {
   }
 
   // If no arithmetic remains, resolve bare [N] refs and return as string (e.g. element name)
-  if (!/[+\-*/^]/.test(expr)) {
-    expr = expr.replace(/\[(\d+)\]/g, (_, pos) => {
+*///  if (!/[+\-*/^]/.test(expr)) {
+/*    expr = expr.replace(/\[(\d+)\]/g, (_, pos) => {
       const r = resMap.get(parseInt(pos, 10));
       if (!r) return pos;
       return fmtNum(r) ?? pos;
@@ -395,7 +594,7 @@ function evaluateAnswer(expression, resolutions, vars) {
   if (isNaN(result)) return expression;
   const precision = getAnswerPrecision(expression, resMap);
   return formatResult(result, precision);
-}
+}*/
 
 // ─── Distractors ──────────────────────────────────────────────────────────────
 
