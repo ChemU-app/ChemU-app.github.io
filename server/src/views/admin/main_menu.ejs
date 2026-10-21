@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+	<h1>Select An Option</h1>
+	<form method="POST" action="//52.206.48.241/admin/menu/base">
+		<input type="hidden" name="token" value="<%= token %>" />
+		<input type="hidden" name="id" value="<%= id %>" />
+		<input type="hidden" name="email" value="<%= email %>" />
+		<input type="hidden" name="role" value="<%= role %>" />
+		<input type="submit" name="action" value="TEACHERS" />
+		<input type="submit" name="action" value="STUDENTS" />
+		<input type="submit" name="action" value="COURSES" />
+                <input type="submit" name="action" value="LOG OUT" />
+        </form>
+</body>
+</html>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+	<h1><%= action %></h1>
+	<h3>Teacher Name: <%= teacher.name %></h3>
+	<p>Teacher E-Mail: <%= teacher.email %></p><br />
+	<form method="POST" action="//52.206.48.241/admin/teacher/modify">
+		<input type="hidden" name="token" value="<%= token %>" />
+		<input type="hidden" name="id" value="<%= id %>" />
+		<input type="hidden" name="email" value="<%= email %>" />
+		<input type="hidden" name="role" value="<%= role %>" />
+		<input type="hidden" name="variable" value="<%= variable %>" />
+		<input type="hidden" name="teacherid" value="<%= teacherid %>" />
+		<label>New Value:</label><br />
+		<input type="password" name="newval" required/><br />
+		<label>Same Value:</label><br />
+		<input type="password" name="subval" required/><br />
+		<input type="submit" name="action" value="Cancel"/>
+		<input type="submit" name="action" value="Change" />
+	</form>
+</body>
+</html>

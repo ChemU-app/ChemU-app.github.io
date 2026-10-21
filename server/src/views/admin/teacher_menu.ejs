@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+	<h1>Select An Option</h1>
+	<p>Total Teacher Count: <%= count %></p><br />
+	<% teachers.forEach(teacher => { -%>
+		<h3><%= teacher.name %></h3>
+		<p>E-Mail: <%= teacher.email %></p><br />
+		<p>
+			Questions In Bank: <%= teacher?.questionBank?.length ?? 0 %><br />
+			Courses: <%= teacher?.courses?.length ?? 0 %><br />
+			Total Students: <%= teacher?.students?.length ?? 0 %><br />
+		</p>
+		<form method="POST" action="//52.206.48.241/admin/teacher/edit">
+			<input type="hidden" name="token" value="<%= token %>" />
+			<input type="hidden" name="id" value="<%= id %>" />
+			<input type="hidden" name="email" value="<%= email %>" />
+			<input type="hidden" name="role" value="<%= role %>" />
+			<input type="hidden" name="count" value="<%= count %>" />
+			<input type="hidden" name="page" value="<%= page %>" />
+			<input type="hidden" name="pageSize" value="<%= pageSize %>" />
+			<input type="hidden" name="teacherid" value="<%= teacher.id %>" />
+			<input type="submit" name="action" value="Change E-Mail"/>
+			<input type="submit" name="action" value="Change Name" />
+			<input type="submit" name="action" value="Change Password" /><br />
+			<input type="submit" name="action" value="View Courses" />
+			<input type="submit" name="action" value="View Question Bank" />
+			<input type="submit" name="action" value="View Students" />
+		</form>
+	<% }); -%>
+	<form method="POST" action="//52.206.48.241/admin/teacher/get">
+		<input type="hidden" name="token" value="<%= token %>" />
+		<input type="hidden" name="id" value="<%= id %>" />
+		<input type="hidden" name="email" value="<%= email %>" />
+		<input type="hidden" name="role" value="<%= role %>" />
+		<input type="hidden" name="count" value="<%= count %>" />
+		<input type="hidden" name="page" value="<%= page %>" />
+		<input type="hidden" name="pageSize" value="<%= pageSize %>" />
+		<br />
+		<input type="submit" name="action" value="PREVIOUS" />
+		<label>Page: <%= page %>/<%= maxPage %></label>
+		<input type="submit" name="action" value="NEXT" /><br />
+		<input type="submit" name="action" value="BACK" />
+        </form>
+</body>
+</html>

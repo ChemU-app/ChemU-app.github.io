@@ -9,6 +9,16 @@ datasource db {
 
 // ─── Content Hierarchy ────────────────────────────────────────────────────────
 
+model Administrator {
+	id		String	@id @default(auto()) @map("_id") @db.ObjectId
+	email		String	@unique
+	password	String
+	canSeeTeacher	Int	@default(0)
+	canSeeStudent	Int	@default(0)
+	canSeeQuestions	Int	@default(0)
+	canSeeCourses	Int	@default(0)
+}
+
 model Teacher {
   id           String     @id @default(auto()) @map("_id") @db.ObjectId
   email        String     @unique
@@ -72,8 +82,7 @@ model Section {
   sectionAttempts  SectionAttempt[]
   currentFor       StudentCourse[]     @relation("CurrentSection")
   currentForEnroll StudentEnrollment[] @relation("CurrentSectionEnroll")
-  questionNumber   String	       @default("0")
-  questionsPerTag  Json?
+  questionNumber   String?
 }
 
 model Question {
@@ -95,11 +104,11 @@ model Question {
   attempts             QuestionAttempt[]
   tags                 QuestionTag[]     @relation(fields: [tagIds], references: [id])
   sections             Section[]         @relation(fields: [sectionIds], references: [id])
-  variables            Json[]
+  varTypes             String[]
+  varMin	       String[]
+  varMax	       String[]
   questionType	       String?
-  sigFigures	       String		 @default("0")
   dynFiBAnswers	       Json?
-  scientificNotation	Json?
 }
 
 model QuestionTag {

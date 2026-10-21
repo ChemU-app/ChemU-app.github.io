@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+	<h1>Select An Option</h1>
+	<p>Total Course Count: <%= count %></p>
+	<% courses.forEach(course => { -%>
+		<h3><%= course.name %></h3>
+		<p>
+			Section Number: <%= course.cclass.sectionNumber %><br />
+			Section Meeting Times: <%= course.cclass.meetingTimes %>
+		</p>
+		<p>Class Code: <%= course.cclass.code %></p>
+		<p>Student Count: <%= course?.students?.length ?? 0 %><br /></p>
+		<form method="POST" action="//52.206.48.241/admin/course/edit">
+			<input type="hidden" name="token" value="<%= token %>" />
+			<input type="hidden" name="id" value="<%= id %>" />
+			<input type="hidden" name="email" value="<%= email %>" />
+			<input type="hidden" name="role" value="<%= role %>" />
+			<input type="hidden" name="count" value="<%= count %>" />
+			<input type="hidden" name="page" value="<%= page %>" />
+			<input type="hidden" name="pageSize" value="<%= pageSize %>" />
+			<input type="hidden" name="courseid" value="<%= course.id %>" />
+		</form>
+	<% }); -%>
+	<form method="POST" action="//52.206.48.241/admin/menu/base">
+		<input type="hidden" name="token" value="<%= token %>" />
+		<input type="hidden" name="id" value="<%= id %>" />
+		<input type="hidden" name="email" value="<%= email %>" />
+		<input type="hidden" name="role" value="<%= role %>" />
+		<input type="hidden" name="count" value="<%= count %>" />
+		<input type="hidden" name="page" value="<%= page %>" />
+		<input type="hidden" name="pageSize" value="<%= pageSize %>" />
+		<br />
+		<input type="submit" name="action" value="PREVIOUS" />
+		<label>Page: <%= page %>/<%= maxPage %></label>
+		<input type="submit" name="action" value="NEXT" /><br />
+		<input type="submit" name="action" value="SHOW ALL" />
+                <input type="submit" name="action" value="BACK" />
+        </form>
+</body>
+</html>

@@ -15,8 +15,13 @@ const statsRoutes = require('./routes/stats.routes');
 const app = express();
 
 app.use(cors());
-
 app.use(express.json());
+app.use(express.text());
+app.use(express.urlencoded({ extended: true }));
+
+app.set("view engine", "ejs");
+const path = require("node:path");
+app.set("views", path.join(__dirname, "views"));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
@@ -33,5 +38,20 @@ app.use('/api/redemptions', redemptionRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/stats', statsRoutes);
+
+// Admin:
+
+const adminAuthRoutes = require('./admin/routes/auth.routes')
+const adminStaticTeacherRoutes = require('./admin/routes/teacher.routes')
+
+const adminStaticMenuRoutes = require('./admin/routes/menu.static.routes')
+
+app.use('/admin/menu', adminStaticMenuRoutes);
+app.use('/admin/teacher', adminStaticTeacherRoutes);
+//app.use('/api/admin/auth', adminAuthRoutes);
+//app.use('/api/admin/teacher', adminTeacherRoutes);
+//app.use('/api/admin/student');
+//app.use('/api/admin/course');
+
 
 module.exports = app;
