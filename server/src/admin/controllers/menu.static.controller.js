@@ -31,7 +31,7 @@ async function base(req, res){
 		jwt.verify(token, process.env.JWT_SECRET);
 	}catch{
 		console.error("BAD TOKEN")
-		return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/index.htm")
+		return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/")
 	}
 	if(role == "ADMINISTRATOR"){
                 const user = await prisma.administrator.findUnique({ where: { email, id } });
@@ -41,7 +41,6 @@ async function base(req, res){
 			const teacherCount = await prisma.teacher.count();
 			const maxPage = Math.ceil(teacherCount/10);
 			var teachers = await prisma.teacher.findMany({
-				take: 10,
 				orderBy:{
 					name: "desc"
 				}
@@ -81,7 +80,6 @@ async function base(req, res){
 			const studentCount = await prisma.student.count();
                         const maxPage = Math.ceil(studentCount/10);
                         var students = await prisma.student.findMany({
-                                take: 10,
                                 orderBy:{
                                         name: "desc"
                                 }
@@ -100,7 +98,6 @@ async function base(req, res){
 				})
 				i++
 			}
-			console.log(students)
                         return res.render("admin/student_menu", {token, email, role, maxPage, students, id: user.id, page: 1, pageSize: 10, count:studentCount})
 
 		}
@@ -108,7 +105,6 @@ async function base(req, res){
 			const courseCount = await prisma.course.count();
 			const maxPage = Math.ceil(courseCount/10)
 			var courses = await prisma.course.findMany({
-                                take: 10,
                                 orderBy:{
                                         name: "desc"
                                 }
@@ -134,15 +130,14 @@ async function base(req, res){
 			})
 		}
 		case "LOG OUT":{
-
+			await authSessionService.deleteAuthSession(token);
+                        return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/")
 		}
 		default:{
 			return res.status(401).send('Invalid action');
 		}
 		}
 		return res.status(401).send('Invalid action');
-                console.log(user)
-                //return res.render("admin/teacger", {token, email, role, id: user.id});
         } else if(role == "TEACHER"){
                 const user = await prisma.teacher.findUnique({ where: { email, id } });
                 if (!user) return res.status(401).send('Invalid credentials');

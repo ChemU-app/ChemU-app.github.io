@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+        <link href="https://chemu-app.github.io/chemu-admin/src/css/basePage.css" rel="stylesheet"/>
+        <link href="https://chemu-app.github.io/chemu-admin/src/css/fonts.css" rel="stylesheet"/>
+
+</head>
+<body>
+        <div class="pageHead">
+                <p class="headerTitle Nunito_900Black">Select An Option</p>
+        </div>
+        <div class="mainContent">
+	<p>Total Question Count: <%= questions.length %></p><br />
+	<% questions.forEach(question => { -%>
+		<div class="itemCard">
+
+		<div class="styleBar"></div>
+                        <div class="cardInfo">
+                                <p class="cardTitle Nunito_700Bold"><%= question.id %></p>
+                <p class="cardSubtitle Nunito_800ExtraBold">
+                        Question ID: <%= question.id %></p>
+		<p>	Question Type: <%= question.type %>
+                </p>
+
+		<h3> Content: </h3>
+		<p>
+			<%= question.content %><br />
+		</p>
+		<p>	Difficulty: <%= question.difficulty %></p>
+                <form method="POST" action="//52.206.48.241/admin/course/edit">
+                        <input type="hidden" name="token" value="<%= token %>" />
+                        <input type="hidden" name="id" value="<%= id %>" />
+                        <input type="hidden" name="email" value="<%= email %>" />
+                        <input type="hidden" name="role" value="<%= role %>" />
+                </form>
+	</div></div>
+	<% }); -%>
+	</div>
+<form method="POST" action="//52.206.48.241/admin/menu/base" class="navBar">
+                <input type="hidden" name="token" value="<%= token %>" />
+                <input type="hidden" name="id" value="<%= id %>" />
+                <input type="hidden" name="email" value="<%= email %>" />
+                <input type="hidden" name="role" value="<%= role %>" />
+                <input class="navBarOption" type="submit" name="action" value="TEACHERS" />
+                <input class="navBarOption" type="submit" name="action" value="STUDENTS" />
+                <input class="navBarOption" type="submit" name="action" value="COURSES" />
+                <input class="navBarOption" type="submit" name="action" value="LOG OUT" />
+        </form>
+
+</body>
+</html>

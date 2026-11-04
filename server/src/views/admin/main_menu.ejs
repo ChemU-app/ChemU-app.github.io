@@ -1,18 +1,25 @@
 <!DOCTYPE html>
 <html>
 <head>
+	<link href="https://chemu-app.github.io/chemu-admin/src/css/basePage.css" rel="stylesheet"/>
+	<link href="https://chemu-app.github.io/chemu-admin/src/css/fonts.css" rel="stylesheet"/>
 </head>
-<body>
-	<h1>Select An Option</h1>
-	<form method="POST" action="//52.206.48.241/admin/menu/base">
+<body class="column">
+	<div class="pageHead">
+		<p class="headerTitle Nunito_900Black">Select An Option</p>
+	</div>
+	<div class="mainContent">
+
+	</div>
+	<form method="POST" action="//52.206.48.241/admin/menu/base" class="navBar">
 		<input type="hidden" name="token" value="<%= token %>" />
 		<input type="hidden" name="id" value="<%= id %>" />
 		<input type="hidden" name="email" value="<%= email %>" />
 		<input type="hidden" name="role" value="<%= role %>" />
-		<input type="submit" name="action" value="TEACHERS" />
-		<input type="submit" name="action" value="STUDENTS" />
-		<input type="submit" name="action" value="COURSES" />
-                <input type="submit" name="action" value="LOG OUT" />
+		<input class="navBarOption" type="submit" name="action" value="TEACHERS" />
+		<input class="navBarOption" type="submit" name="action" value="STUDENTS" />
+		<input class="navBarOption" type="submit" name="action" value="COURSES" />
+                <input class="navBarOption" type="submit" name="action" value="LOG OUT" />
         </form>
 </body>
 </html>

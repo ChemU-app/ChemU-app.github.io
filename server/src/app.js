@@ -43,11 +43,13 @@ app.use('/api/stats', statsRoutes);
 
 const adminAuthRoutes = require('./admin/routes/auth.routes')
 const adminStaticTeacherRoutes = require('./admin/routes/teacher.routes')
+const adminStaticStudentRoutes = require('./admin/routes/student.routes')
 
 const adminStaticMenuRoutes = require('./admin/routes/menu.static.routes')
 
 app.use('/admin/menu', adminStaticMenuRoutes);
 app.use('/admin/teacher', adminStaticTeacherRoutes);
+app.use('/admin/student', adminStaticStudentRoutes);
 //app.use('/api/admin/auth', adminAuthRoutes);
 //app.use('/api/admin/teacher', adminTeacherRoutes);
 //app.use('/api/admin/student');

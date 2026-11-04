@@ -2,6 +2,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const authSessionService = require('../services/authSession.service');
 const authUtils = require('../../utils/auth.utils');
+const page_utils = require('../../utils/page.utils');
 const bcrypt = require('bcryptjs');
 const menu = require('./menu.static.controller');
 
@@ -22,7 +23,7 @@ async function modifyTeacher(req, res){
 	if(teacherid == "")return res.status(401).send("INVALID TEACHER ID")
 	if(variable == "")return res.status(401).send("INVALID VARIABLE")
         if(action == "")return res.status(401).send("INVALID ACTION")
-	if(authUtils.check_token(req, res) == false)return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/index.htm")
+	if(authUtils.check_token(req, res) == false)return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/")
 	const teacher = prisma.teacher.findUnique({
 		where: {id: teacherid}
 	})
@@ -97,7 +98,7 @@ async function editTeacher(req, res) {
         }
         if(action == "")return res.status(401).send("INVALID ACTION")
 	const isAuth = await authUtils.check_token(req, res)
-	if(isAuth == false)return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/index.htm")
+	if(isAuth == false)return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/")
 
 	const teacher = await prisma.teacher.findUnique({
 		where:{
@@ -113,6 +114,92 @@ async function editTeacher(req, res) {
 			token, email, id, role, action,
 			teacherid, teacher, variable: action.split(" ")[1]
 		})
+	}
+
+	case "View Question Bank":{
+		const questions = await prisma.question.findMany({
+			where: {
+				teacherId:teacherid
+			}
+		})
+		res.render("admin/teacher_bank", {
+			token, email, id, role, questions
+		})
+		break;
+	}
+	case "View Students":{
+		var enrolled = [];
+		var j = 0;
+		teacher.courses = await prisma.course.findMany({where:{
+			teacherId: teacher.id
+		}})
+		while(j < teacher.courses.length){
+			const classes = await prisma.courseClass.findMany({where:{
+                	                                courseId: teacher.courses[j].id
+                	}});
+                	const enrollments = await prisma.studentEnrollment.findMany({where:{
+                	                                courseClassId: classes[0].id
+                	}})
+                	let k = 0;
+                	while(k < enrollments.length){
+                		if(enrolled.indexOf(enrollments[k].studentId) == -1)enrolled.push(enrollments[k].studentId)
+				k++;
+                	}
+			j++
+		}
+		j = 0;
+		var students = [];
+		while(j < enrolled.length){
+			students.push(await prisma.student.findUnique({
+				where:{
+					id: enrolled[j]
+				}
+			}))
+			let k = 0;
+			const classes = await prisma.courseClass.findMany({where:{
+				courseId: teacher.courses[k].id
+			}})
+			students[j].enrollments = await prisma.studentEnrollment.findMany({where:{
+				courseClassId: classes[0].id,
+				studentId: students[j].id
+			}})
+			j++
+		}
+		res.render("admin/student_menu", {
+			token, email, id, role, students, page: 1, pageSize: 10, count: students.length
+		})
+		break;
+	}
+	case "View Courses":{
+		var courses = await prisma.course.findMany({
+				where:{
+					teacherId: teacher.id
+				},
+                                orderBy:{
+                                        name: "desc"
+                                }
+                        });
+		var i = 0;
+		while(i < courses.length) {
+			const classes = await prisma.courseClass.findMany({
+                                        where:{
+                                                courseId: courses[i].id
+                                        }
+                                })
+                                courses[i].cclass = classes[0];
+                                courses[i].students = await prisma.studentEnrollment.findMany({
+                                        where:{
+                                             courseClassId: courses[i].cclass.id
+                                        }
+                                })
+                                i++
+
+		}
+		res.render("admin/course_menu", {
+			token, email, role, maxPage:1, courses, id, page:1, pageSize:10, count: courses.length
+		})
+		break;
+		break;
 	}
 	}
 }
@@ -131,7 +218,7 @@ async function getTeachers(req, res) {
         }
         if(action == "")return res.status(401).send("INVALID ACTION")
         const isAuth = await authUtils.check_token(req, res)
-        if(isAuth == false)return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/index.htm")
+        if(isAuth == false)return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/")
         const teacherCount = await prisma.teacher.count();
         const maxPage = Math.ceil(teacherCount/pageSize);
 	console.log(maxPage);
