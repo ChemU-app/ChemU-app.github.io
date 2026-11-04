@@ -32,7 +32,6 @@ async function modifyStudent(req, res){
 		const studentCount = await prisma.student.count();
         	const maxPage = Math.floor(studentCount/10) + (Math.floor(studentCount/10) == 0)?0:1;
                         var students = await prisma.student.findMany({
-                                take: 10,
                                 orderBy:{
                                         name: "desc"
                                 }
@@ -75,7 +74,6 @@ async function modifyStudent(req, res){
 	const studentCount = await prisma.student.count();
         const maxPage = Math.floor(studentCount/10) + (Math.floor(studentCount/10) == 0)?0:1;
                         var students = await prisma.student.findMany({
-                                take: 10,
                                 orderBy:{
                                         name: "desc"
                                 }
@@ -127,7 +125,7 @@ async function editStudent(req, res) {
 	case "Change Password":{
 		return res.render("admin/student_modify", {
 			token, email, id, role, action,
-			student, variable: action.split(" ")[1]
+			student, studentid: student.id, variable: action.split(" ")[1]
 		})
 	}
 	}
@@ -165,8 +163,6 @@ async function getStudents(req, res) {
         }
         }
 	var students = await prisma.student.findMany({
-                                take: 10,
-				skip: 10*(page-1),
                                 orderBy:{
                                         name: "desc"
                                 }

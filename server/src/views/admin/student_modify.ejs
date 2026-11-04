@@ -10,15 +10,15 @@
 		<p class="headerTitle Nunito_900Black">Modify <%= action %></p>
 	</div>
 	<div class="mainContent">
-		<h3>Teacher Name: <%= teacher.name %></h3>
-		<p>Teacher E-Mail: <%= teacher.email %></p><br />
-		<form method="POST" action="//52.206.48.241/admin/teacher/modify">
+		<h3>Student Name: <%= student.name %></h3>
+		<p>Student E-Mail: <%= student.email %></p><br />
+		<form method="POST" action="//52.206.48.241/admin/student/modify">
 			<input type="hidden" name="token" value="<%= token %>" />
 			<input type="hidden" name="id" value="<%= id %>" />
 			<input type="hidden" name="email" value="<%= email %>" />
 			<input type="hidden" name="role" value="<%= role %>" />
 			<input type="hidden" name="variable" value="<%= variable %>" />
-			<input type="hidden" name="teacherid" value="<%= teacherid %>" />
+			<input type="hidden" name="studentid" value="<%= studentid %>" />
 			<label class="Nunito_800ExtraBold">New Value:</label><br />
 			<input class="textInput Outfit_400Regular" type="password" name="newval" required/><br />
 			<label class="Nunito_800ExtraBold">Same Value:</label><br />

@@ -221,8 +221,6 @@ async function getTeachers(req, res) {
         if(isAuth == false)return page_utils.page_redirect(res, "https://chemu-app.github.io/chemu-admin/src/www/")
         const teacherCount = await prisma.teacher.count();
         const maxPage = Math.ceil(teacherCount/pageSize);
-	console.log(maxPage);
-	console.log(page);
 	if(page > maxPage) page = maxPage
 	if(page < 1) page = 1
 	switch(action){
@@ -238,8 +236,6 @@ async function getTeachers(req, res) {
         }
         }
 	var teachers = await prisma.teacher.findMany({
-                                take: 10,
-				skip: 10*(page-1),
                                 orderBy:{
                                         name: "desc"
                                 }
