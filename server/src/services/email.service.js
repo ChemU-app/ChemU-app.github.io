@@ -47,7 +47,7 @@ export const getEmailHTML = (code) => `<html>
 </body>
 </html>`;
 
-export const sendEmail = async (to, code) => {
+export async function sendEmail (to, code){
     const html = getEmailHTML(code);
     await sendEmailService(to, "ChemU App Recovery Code", html);
 };
