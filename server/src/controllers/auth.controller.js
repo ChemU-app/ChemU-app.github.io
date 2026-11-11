@@ -41,8 +41,8 @@ async function handoutCode(req, res){
 		resetCode = randString(16, seedrandom(user.password+Date.now(), { entropy: true }));
 	}
 	const hashed = await bcrypt.hash(resetCode, 12);
-	await model.findUnique({where: {email},
-		update:{
+	await model.update({where: {email},
+		data:{
 			recoveryCode: hashed,
 			recoveryDate: new Date()
 		}
@@ -73,8 +73,8 @@ async function resetCode(req, res){
   	const valid = await bcrypt.compare(recoveryCode, userRecoveryCode);
   	if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 	const hashed = await bcrypt.hash(newPassword, 12);
-	await model.findUnique({where: {email},
-                update:{
+	await model.update({where: {email},
+                data:{
                         password: hashed,
 			recoveryDate: new Date('1998-12-24')
                 }
