@@ -1,4 +1,5 @@
 import myOAuth2Client from "./gauth.service.js";
+import {googleEmailConfig} from "../gmailOptions.js"
 import { createTransport } from "nodemailer";
 
 export const sendEmailService = async (
