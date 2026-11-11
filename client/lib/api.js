@@ -86,3 +86,9 @@ export const api = {
   patch: (path, body, token) => requestWithRefresh(path, { method: 'PATCH', body, token }),
   delete: (path, token) => requestWithRefresh(path, {method: 'DELETE',token,}),
 };
+export const tokenlessApi = {
+  get:   (path)       => request(path, {}),
+  post:  (path, body) => request(path, { method: 'POST',  body}),
+  patch: (path, body) => request(path, { method: 'PATCH', body}),
+  delete: (path) => request(path, {method: 'DELETE',}),
+}

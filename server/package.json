@@ -21,8 +21,10 @@
     "dotenv": "^16.4.5",
     "ejs": "^7.0.2",
     "express": "^4.19.2",
+    "googleapis": "^189.0.0",
     "jsonwebtoken": "^9.0.3",
-    "nodemailer": "^10.3.1"
+    "nodemailer": "^10.4.0",
+    "seedrandom": "^3.0.5"
   },
   "devDependencies": {
     "jest": "^30.3.0",

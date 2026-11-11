@@ -2,6 +2,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const authSessionService = require('../services/authSession.service');
+var seedrandom = require('seedrandom');
+const email = require('../services/email.service');
 
 function signToken(id, role) {
   return jwt.sign({ sub: id, role }, process.env.JWT_SECRET, {
@@ -13,6 +15,71 @@ function getModel(role) {
   if (role === 'TEACHER') return prisma.teacher;
   if (role === 'STUDENT') return prisma.student;
   return null;
+}
+
+function randString(length, generator){
+    const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    var result = "";
+    var i = 0;
+    while(i < length) {
+        result += chars.charAt(Math.floor(generator() * chars.length));
+	i++;
+    }
+    return result;
+}
+
+async function handoutCode(req, res){
+	const { role, email } = req.body;
+	if (!role || !['TEACHER', 'STUDENT'].includes(role)) return res.status(400).json({error: 'role must be TEACHER or STUDENT'});
+	if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({error:'valid email is required'});
+	const model = getModel(role);
+	const user = await model.findUnique({ where: { email } });
+ 	if (!user) return res.status(401).json({ error: 'Invalid email. Make sure the email field and correct role is selected.' });
+	let userReset = user?.recoveryCode ?? "";
+	let resetCode = randString(16, seedrandom(user.password+Date.now(), { entropy: true }));
+	while(resetCode == userReset){
+		resetCode = randString(16, seedrandom(user.password+Date.now(), { entropy: true }));
+	}
+	const hashed = await bcrypt.hash(resetCode, 12);
+	await model.findUnique({where: {email},
+		update:{
+			recoveryCode: hashed,
+			recoveryDate: new Date()
+		}
+	});
+	await email.sendEmail(email, resetCode);
+	return res.status(200);
+}
+
+async function resetCode(req, res){
+	const { role, email, recoveryCode, newPassword} = req.body;
+	const errors = [];
+
+  	if (!role || !['TEACHER', 'STUDENT'].includes(role)) errors.push('role must be TEACHER or STUDENT');
+  	if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.push('valid email is required');
+  	if (!newPassword || newPassword.length < 8) errors.push('password must be at least 8 characters');
+	if (!recoveryCode) errors.push('recovery code is required');
+  	if (errors.length) return res.status(400).json({ error: errors.join('; ') });
+	const model = getModel(role);
+  	const user = await model.findUnique({ where: { email } });
+  	if (!user) return res.status(401).json({ error: 'Invalid credentials' });
+
+	var userRecoveryDate = user?.recoveryDate ?? new Date('1998-12-24');
+	var latest = userRecoveryDate.getTime() + 600000;
+	var currentTime = new Data().getTime();
+	if (latest < currentTime) return res.status(402).json({error: 'recovery code expired'});
+	
+	var userRecoveryCode = user?.recoveryCode ?? "";
+  	const valid = await bcrypt.compare(recoveryCode, userRecoveryCode);
+  	if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
+	const hashed = await bcrypt.hash(newPassword, 12);
+	await model.findUnique({where: {email},
+                update:{
+                        password: hashed,
+			recoveryDate: new Date('1998-12-24')
+                }
+        });
+	return res.status(200);
 }
 
 async function signup(req, res) {
@@ -141,4 +208,4 @@ async function changeProfile(req, res) {
   res.json({ ...updated, role });
 }
 
-module.exports = { signup, login, refresh, logout, me, changeProfile };
+module.exports = { signup, login, refresh, logout, me, changeProfile, handoutCode, resetCode};

@@ -8,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import { alertLib } from '../../lib/alertLib';
 import { ShadowButton, ScreenSurface } from '../../components/base';
 import { colors, typeScale, screenPadding, radius } from '../../theme';
+import { tokenlessApi, setAuthCallbacks } from '../../lib/api';
 import Ionicons from "@react-native-vector-icons/ionicons";
 
 export default function LoginScreen({ navigation }) {
@@ -142,6 +143,21 @@ export default function LoginScreen({ navigation }) {
           <Pressable onPress={() => navigation.navigate('Signup')}>
             <Text style={styles.footerLink}> Sign up</Text>
           </Pressable>
+        </View>
+	<View style={styles.footer}>
+          <Text style={styles.footerText}>Forgot password?</Text>
+          <Pressable onPress={() => {
+	  	try {
+		 tokenlessApi.post("/auth/rCode", {email: email, role: role});
+		} catch (err) {
+			alertLib("Failed recover", "make sure your email and role are correct")
+			return
+		}
+		navigation.navigate('Recover', {email, role});
+          }}>
+            <Text style={styles.footerLink}> Reset Password</Text>
+          </Pressable>
+
         </View>
 
       </ScrollView>
