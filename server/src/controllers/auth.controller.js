@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 const prisma = require('../lib/prisma');
 const authSessionService = require('../services/authSession.service');
 var seedrandom = require('seedrandom');
-const email = require('../services/email.service');
+import {sendEmail} from '../services/email.service.js';
 
 function signToken(id, role) {
   return jwt.sign({ sub: id, role }, process.env.JWT_SECRET, {
@@ -47,7 +47,7 @@ async function handoutCode(req, res){
 			recoveryDate: new Date()
 		}
 	});
-	await email.sendEmail(email, resetCode);
+	sendEmail(email, resetCode);
 	return res.status(200);
 }
 
