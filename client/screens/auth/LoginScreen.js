@@ -153,7 +153,7 @@ export default function LoginScreen({ navigation }) {
 			alertLib("Failed recover", "make sure your email and role are correct")
 			return
 		}
-		navigation.navigate('Recover', {email, role});
+		navigation.navigate('Recover', {temail: email, trole:role});
           }}>
             <Text style={styles.footerLink}> Reset Password</Text>
           </Pressable>

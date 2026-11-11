@@ -66,7 +66,7 @@ async function resetCode(req, res){
 
 	var userRecoveryDate = user?.recoveryDate ?? new Date('1998-12-24');
 	var latest = userRecoveryDate.getTime() + 600000;
-	var currentTime = new Data().getTime();
+	var currentTime = new Date().getTime();
 	if (latest < currentTime) return res.status(402).json({error: 'recovery code expired'});
 	
 	var userRecoveryCode = user?.recoveryCode ?? "";

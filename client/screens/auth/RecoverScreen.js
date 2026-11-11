@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   View, Text, TextInput, Pressable, StyleSheet, ScrollView, Switch, Image,
 } from 'react-native';
 
+import { tokenlessApi } from '../../lib/api';
 import { alertLib } from '../../lib/alertLib';
 import { ShadowButton, ScreenSurface } from '../../components/base';
 import { colors, typeScale, screenPadding, radius } from '../../theme';
@@ -16,8 +17,16 @@ export default function RecoverScreen({ navigation, route }) {
   const [password, setPassword] = useState('');
   const [recovery, setRecovery] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const {email, role} = route.params;
-
+  const {temail, trole} = route.params;
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("");
+   useEffect(() => {
+	setEmail(temail)
+	setRole(trole)
+   },[])
+  console.log("-----------------");
+  console.log(email);
+  console.log(role);
   const handleReset = async () => {
 	if(!rpassword || !password || !recovery){
 		alertLib('Missing fields', 'Please enter the recovery code and new password');
@@ -32,9 +41,11 @@ export default function RecoverScreen({ navigation, route }) {
 		return;
 	}
 	try {
-                tokenlessApi.post("/auth/reset", {email, role, recoveryCode: recovery, newPassword: password});
-                } catch (err) {
+                const data = await tokenlessApi.post("/auth/reset", {email, role, recoveryCode: recovery, newPassword: password});
+                console.log(data);
+		} catch (err) {
                         alertLib("Failed recover", "make sure your email and role are correct")
+			console.log(err);
                         return
                 }
 	navigation.navigate('Login');
