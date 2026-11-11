@@ -24,6 +24,8 @@ model Teacher {
   email        String     @unique
   name         String
   password     String
+  recoveryCode String?    @default("")
+  recoveryDate DateTime?  @default("1900-01-01T00:00:00.000Z")
   questionBank Question[]
   courses      Course[]
 }
@@ -173,6 +175,8 @@ model Student {
   rewards          StudentReward[]
   attempts         QuestionAttempt[]
   joinRequests     JoinRequest[]
+  recoveryCode String?    @default("")
+  recoveryDate DateTime?  @default("1900-01-01T00:00:00.000Z")
 }
 
 // Legacy enrollment model — kept for backward compat during migration
