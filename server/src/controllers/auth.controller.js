@@ -65,8 +65,8 @@ async function resetCode(req, res){
   	if (!user) return res.status(401).json({ error: 'Invalid credentials' });
 
 	var userRecoveryDate = user?.recoveryDate ?? new Date('1900-01-01T00:00:00.000Z');
-	const within10Minutes = Math.abs(Date.now() - userRecoveryDate.getTime()) <= 10 * 60 * 1000;
-	if (within10Minutes) return res.status(402).json({error: `recovery code expired ${Math.abs(Date.now() - userRecoveryDate.getTime())}`});
+	const within10Minutes = Math.abs(Date.now() - userRecoveryDate.getTime()) <= (10 * 60 * 1000);
+	if (!within10Minutes) return res.status(402).json({error: `recovery code expired ${Math.abs(Date.now() - userRecoveryDate.getTime())}`});
 	
 	var userRecoveryCode = user?.recoveryCode ?? "";
   	const valid = await bcrypt.compare(recoveryCode, userRecoveryCode);
@@ -75,7 +75,7 @@ async function resetCode(req, res){
 	await model.update({where: {email},
                 data:{
                         password: hashed,
-			recoveryDate: new Date('1998-12-24')
+			recoveryDate: new Date('1900-01-01T00:00:00.000Z')
                 }
         });
 	return res.status(200);
