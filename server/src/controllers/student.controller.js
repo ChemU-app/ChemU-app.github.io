@@ -22,6 +22,7 @@ async function getStudentCourses(req, res) {
   {
   	var i = 0;
 	console.log("GetData");
+	console.log("Enrollments: " + enrollments.length);
 	while(i < enrollments.length){
 		console.log(enrollments[i].currentSectionId);
 		console.log(enrollments[i].currentSection);
