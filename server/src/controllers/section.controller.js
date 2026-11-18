@@ -381,7 +381,7 @@ async function updateSection(req, res) {
 
     if(req.body?.hidden !== undefined){
       if(req.body.hidden == 0 || req.body.hidden == 1){
-	updateData.hiddern = req.body.hidden;
+	updateData.hidden = req.body.hidden;
       }
     }
 

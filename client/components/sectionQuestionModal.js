@@ -275,13 +275,20 @@ export default function TagQuestionModal({
                   />
                 </View>
               ))}
+	      	<View style={styles.tagRow}>
+                  <View style={styles.tagInfo}>
+                    <Text style={styles.tagName}>Hidden:</Text>
+                  </View>
+
+                 <Switch
+                	value={hiddenState}
+                	onValueChange={setHiddenState}
+          	 />
+
+		</View>
+
             </ScrollView>
           )}
-
-	  <Switch
-      		value={hiddenState}
-      		onValueChange={setHiddenState}
-    	  />
 
           <View style={styles.actions}>
             <Pressable
