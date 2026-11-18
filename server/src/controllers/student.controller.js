@@ -1286,6 +1286,21 @@ async function getStudentCourseChapters(req, res) {
     },
   });
 
+  {
+	var i = 0;
+	while(i < chapters.length){
+		var j = 0;
+		while(j < chapters[i].sections.length){
+			var hidden = chapters[i].sections[j]?.hidden ?? 0;
+			if(hidden == 1){
+				chapters[i].sections.splice(j, 1);
+			}
+			j++;
+		}
+		i++;
+	}
+  }
+
   const sectionIds = chapters.flatMap(ch => ch.sections.map(s => s.id));
   const completions = await prisma.studentSection.findMany({
     where: { studentId, sectionId: { in: sectionIds } },
