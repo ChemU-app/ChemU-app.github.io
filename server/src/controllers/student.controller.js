@@ -19,6 +19,16 @@ async function getStudentCourses(req, res) {
     orderBy: { course: { name: 'asc' } },
   });
 
+  {
+  	var i = 0;
+	console.log("GetData");
+	while(i < enrollments.length){
+		console.log(enrollments[i].currentSectionId);
+		console.log(enrollments[i].currentSection);
+		i++;
+	}
+  }
+
   res.json(enrollments.map(e => ({
     id: e.course.id,
     name: e.course.name,

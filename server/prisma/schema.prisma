@@ -85,6 +85,7 @@ model Section {
   currentFor       StudentCourse[]     @relation("CurrentSection")
   currentForEnroll StudentEnrollment[] @relation("CurrentSectionEnroll")
   questionNumber   String	       @default("0")
+  hidden	   Int		       @default(0)
   questionsPerTag  Json?
 }
 

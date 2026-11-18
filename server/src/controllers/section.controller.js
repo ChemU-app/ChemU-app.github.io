@@ -379,6 +379,12 @@ async function updateSection(req, res) {
       updateData.questionNumber = String(req.body.questionNumber);
     }
 
+    if(req.body?.hidden !== undefined){
+      if(req.body.hidden == 0 || req.body.hidden == 1){
+	updateData.hiddern = req.body.hidden;
+      }
+    }
+
     if (questionsPerTag !== undefined) {
       updateData.questionsPerTag = questionsPerTag;
     }

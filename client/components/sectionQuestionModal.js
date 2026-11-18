@@ -9,6 +9,7 @@ import {
   Text,
   TextInput,
   View,
+  Switch,
 } from "react-native";
 import { api } from "../lib/api";
 
@@ -20,6 +21,7 @@ export default function TagQuestionModal({
 }) {
   const [questions, setQuestions] = useState([]);
   const [tagCounts, setTagCounts] = useState({});
+  const [hiddenState, setHiddenState] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -36,6 +38,7 @@ export default function TagQuestionModal({
       setLoading(true);
 
       try {
+        setHiddenState(((section?.hidden ?? 0 ) == 0)? false : true);
         const fetchedQuestions = await Promise.all(
           section.questionIds.map((questionId) =>
             api.get(`/questions/${questionId}`, token)
@@ -193,6 +196,7 @@ export default function TagQuestionModal({
 
     const body = {
       questionsPerTag: normalizedTagCounts,
+      hidden: (hiddenState == false)?0 : 1
     };
 
     setSaving(true);
@@ -273,6 +277,11 @@ export default function TagQuestionModal({
               ))}
             </ScrollView>
           )}
+
+	  <Switch
+      		value={hiddenState}
+      		onValueChange={setHiddenState}
+    	  />
 
           <View style={styles.actions}>
             <Pressable
